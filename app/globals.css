@@ -1,0 +1,1439 @@
+@import "tailwindcss";
+
+/* === Display + Latin faces ==========================================
+   庞门正道细线体 (PangMenZhengDao-XiXian) — 免费商用, 7834 glyphs, full
+   GB2312 CJK *plus* Latin, so it can carry a whole stack on its own.
+   The Night Watch — 81 glyphs, A-Z/a-z/0-9 complete, ZERO CJK coverage.
+
+   That asymmetry is the whole design: putting The Night Watch first means
+   every Latin letter and digit resolves to it while every Chinese glyph
+   falls straight through to 庞门正道细线体. One stack, two faces, no
+   unicode-range splitting needed. The three characters TNW lacks ( " / · )
+   also fall through to the CJK face, which has them.
+
+   `local(...)` first — if the visitor already has the font installed the
+   browser uses it and downloads nothing. Self-hosted /fonts copy second.
+   `font-display: swap` keeps text visible instead of flashing invisible. */
+@font-face {
+  font-family: "PangMenZhengDaoXiXianTi";
+  src:
+    local("庞门正道细线体"),
+    local("PangMenZhengDao-XiXian"),
+    local("PangMenZhengDao XiXianTi"),
+    url("/fonts/PangMenZhengDao-XiXianTi.woff2") format("woff2"),
+    url("/fonts/PangMenZhengDao-XiXianTi.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "TheNightWatch";
+  src:
+    local("The Night Watch"),
+    local("TheNightWatch-Regular"),
+    url("/fonts/TheNightWatch.woff2") format("woff2"),
+    url("/fonts/TheNightWatch.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Family names here have to match the strings in ring/params.js — nameFont,
+   idxFont and textFont are looked up by name, not imported. */
+
+/* Project names and disciplines. Two real weights, so nameWeight 400 and 500
+   both resolve to a cut rather than a synthesised one. */
+@font-face {
+  font-family: "Satoshi";
+  src: url("/Satoshi-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Satoshi";
+  src: url("/Satoshi-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Numbers, years and the load counter. */
+@font-face {
+  font-family: "Geist";
+  src: url("/Geist-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* The intro heading and the cursor tag, both rasterised to canvas. Book is
+   the only cut installed, so textWeight has nothing to switch between. */
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("/ppneuemontreal-book.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: #fafafa;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+canvas {
+  display: block;
+}
+
+/* Specular rim for the glass buttons in the divination overlay — the conic
+   highlight from TREE.html, masked down to the border so it reads as a lit
+   edge sweeping around the button. --spec-angle (rad) points at the pointer,
+   --spec-bright (0..1) is how far off-centre the cursor is: 0 while parked,
+   so the rim sleeps until the pointer sweeps across. */
+.spec-btn {
+  position: relative;
+}
+.spec-btn::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 1;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--spec-bright, 0.22);
+  transition: opacity 0.25s ease;
+  background: conic-gradient(
+    from var(--spec-angle, 2.4rad) at calc(var(--spec-x, 50%)) calc(var(--spec-y, 50%)),
+    rgba(255, 255, 255, 0) 0deg,
+    rgba(255, 255, 255, 0.12) 14deg,
+    rgba(255, 255, 255, 0.95) 28deg,
+    rgba(255, 255, 255, 0.22) 46deg,
+    rgba(255, 255, 255, 0) 68deg,
+    rgba(255, 255, 255, 0) 180deg,
+    rgba(255, 255, 255, 0.12) 194deg,
+    rgba(255, 255, 255, 0.95) 208deg,
+    rgba(255, 255, 255, 0.22) 226deg,
+    rgba(255, 255, 255, 0) 248deg,
+    rgba(255, 255, 255, 0) 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* Copied from the reference "View" button rather than reinterpreted: a bright
+   translucent white capsule. The body is white at ~62% over a
+   backdrop-filter that blurs and saturates whatever sits behind it, so it
+   reads as frosted glass instead of a tinted rectangle. Type and icon are
+   dark, as they are on the reference — a light body needs dark ink.
+
+   The canvas is held still while the overlay is open (frozenRef in
+   Carousel.jsx), so the compositor caches the blurred backdrop instead of
+   re-sampling it every frame. */
+.liquid-btn {
+  position: relative;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  color: #14180f;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  background:
+    /* Top-of-glass highlight, broad enough to read as a slab, not a hairline.
+       Reference sheet (the ↗ View pill) shows the highlight as a visible
+       band, not a 1px rule. */
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(255, 255, 255, 0.78) 30%,
+      rgba(255, 255, 255, 0.58) 60%,
+      rgba(255, 255, 255, 0.50) 100%
+    );
+  -webkit-backdrop-filter: blur(20px) saturate(190%);
+  backdrop-filter: blur(20px) saturate(190%);
+  box-shadow:
+    /* Top edge highlight: 1.5px tall, near-white. The thin line was getting
+       lost in the blur and the button read as a flat grey oval. */
+    inset 0 1.5px 0 rgba(255, 255, 255, 1),
+    /* Bottom edge dark line: anchors the pill so it doesn't dissolve
+       into the scrim. */
+    inset 0 -1px 0 rgba(20, 24, 15, 0.05),
+    /* Inset white rim, separate from the border, so the glass has thickness
+       on its inner wall. */
+    inset 0 0 0 1px rgba(255, 255, 255, 0.42),
+    0 1px 2px rgba(20, 24, 15, 0.06),
+    0 6px 18px rgba(20, 24, 15, 0.10),
+    0 22px 48px rgba(20, 24, 15, 0.10);
+  transition:
+    box-shadow 0.38s cubic-bezier(0.22, 0.61, 0.36, 1),
+    background 0.38s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.18s ease,
+    color 0.2s ease;
+}
+/* Keep label and icon above the rim highlight. */
+.liquid-btn > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Edge optics. Two things real glass does at its rim, both of them pure CSS
+   and therefore guaranteed — the displacement filter in layout.js is the
+   actual refraction, this is its optical signature, and it still carries the
+   effect on browsers that drop url() filters from backdrop-filter.
+
+   1. Rim gather: light piles up toward the edge and the middle stays clear,
+      which is total internal reflection off the curved glass wall.
+   2. Dispersion: warm on one wall, cool on the other, at sub-pixel offsets —
+      reads as a prism splitting light rather than a coloured border. */
+.liquid-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    130% 130% at 50% 50%,
+    rgba(255, 255, 255, 0) 52%,
+    rgba(255, 255, 255, 0.26) 84%,
+    rgba(255, 255, 255, 0.60) 100%
+  );
+  box-shadow:
+    inset 0.5px 0 1px rgba(255, 188, 140, 0.50),
+    inset -0.5px 0 1px rgba(150, 208, 255, 0.50),
+    inset 0 0.5px 1px rgba(255, 255, 255, 0.45),
+    inset 0 -0.5px 1px rgba(198, 180, 255, 0.32);
+}
+
+/* The real refraction: bends what is behind the glass at its rim, so the
+   ring behind the button visibly kinks where it passes under the edge.
+   Guarded by @supports — a browser that cannot resolve a url() filter in
+   backdrop-filter keeps the plain blur declared above instead of losing the
+   frosted surface altogether. */
+@supports (backdrop-filter: url("#glass-refract")) {
+  .liquid-btn {
+    -webkit-backdrop-filter: url("#glass-refract") blur(16px) saturate(190%);
+    backdrop-filter: url("#glass-refract") blur(16px) saturate(190%);
+  }
+  .glass-panel {
+    -webkit-backdrop-filter: url("#glass-refract-panel") blur(28px) saturate(190%);
+    backdrop-filter: url("#glass-refract-panel") blur(28px) saturate(190%);
+  }
+}
+.liquid-btn:hover {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 255, 255, 0.88) 30%,
+      rgba(255, 255, 255, 0.72) 60%,
+      rgba(255, 255, 255, 0.62) 100%
+    );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(20, 24, 15, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+    0 2px 4px rgba(20, 24, 15, 0.08),
+    0 10px 28px rgba(20, 24, 15, 0.14),
+    0 30px 60px rgba(20, 24, 15, 0.12);
+}
+.liquid-btn:active {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.78) 0%,
+      rgba(255, 255, 255, 0.60) 60%,
+      rgba(255, 255, 255, 0.48) 100%
+    );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -1px 0 rgba(20, 24, 15, 0.06),
+    0 1px 2px rgba(20, 24, 15, 0.10),
+    0 4px 12px rgba(20, 24, 15, 0.14);
+  transition-duration: 0.1s;
+}
+
+/* The same View button surface, squared off with a corner radius, for the
+   non-interactive panels of the overlay — guardian card, tarot card faces.
+   Slightly more transparent than a button: a big panel at full button
+   opacity would read as a sheet of paper rather than a pane of glass. */
+.plate {
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.48);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 14px 34px rgba(0, 0, 0, 0.10);
+}
+
+/* The same surface on the tarot card backs. Sits under the deck artwork, so
+   it only shows at the edges — it brightens as the pointer moves over. */
+.liquid-card {
+  border: 1px solid rgba(255, 255, 255, 0.70);
+  background: rgba(255, 255, 255, 0.44);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  backdrop-filter: blur(14px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 6px 18px rgba(0, 0, 0, 0.10);
+  transition:
+    background 0.38s cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 0.38s cubic-bezier(0.22, 0.61, 0.36, 1),
+    border-color 0.38s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.liquid-card:hover {
+  border-color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 8px 24px rgba(0, 0, 0, 0.13);
+}
+
+/* The whole divination overlay is one big pane of the View button's glass.
+   The blur is the deepest of the set, so the WebGL scene behind reads as
+   badly out of focus rather than merely dimmed — that depth cue is most of
+   what sells the panel as glass rather than as a white card. Body opacity is
+   lower than the buttons: over this much area, full strength would read as
+   paper.
+
+   Everything inside inherits dark ink from here (see the text classes in
+   Carousel.jsx) — a light pane needs dark type, same as the reference. */
+/* The divination panel. The top edge has to read as a glass thickness,
+   not a 1px rule — the overlay sits on a 1.5px near-white band the same
+   way the View pill does, so the panel and its buttons are clearly the
+   same material. The two outer shadows spread the refraction out from
+   the panel so it looks like a pane lifted off the canvas, not a card. */
+.glass-panel {
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.78) 0%,
+      rgba(255, 255, 255, 0.62) 40%,
+      rgba(255, 255, 255, 0.48) 100%
+    );
+  -webkit-backdrop-filter: blur(32px) saturate(190%);
+  backdrop-filter: blur(32px) saturate(190%);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(20, 24, 15, 0.04),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.32),
+    0 14px 36px rgba(20, 24, 15, 0.12),
+    0 50px 110px rgba(20, 24, 15, 0.18),
+    0 100px 200px rgba(20, 24, 15, 0.12);
+}
+
+/* The dim backdrop behind the glass panel. Kept light on purpose — the
+   original 0.30 black scrim was dark enough to flatten the glass back
+   into a grey plate and steal the floating-glass illusion. The element
+   colour comes through softly via --element-tint so the scrim carries
+   the same identity as the sign that opened it. */
+.glass-scrim {
+  background:
+    radial-gradient(80% 60% at 50% 30%, rgba(255, 248, 236, 0.18), rgba(255, 248, 236, 0) 70%),
+    var(--element-tint, rgba(20, 24, 15, 0.04)),
+    rgba(20, 24, 15, 0.12);
+}
+
+/* Small glass badge/chip for the card position labels and the reversed tag.
+   The same pane at a smaller scale, with a tighter blur. */
+.glass-chip {
+  border: 1px solid rgba(255, 255, 255, 0.70);
+  background: rgba(255, 255, 255, 0.50);
+  -webkit-backdrop-filter: blur(8px) saturate(175%);
+  backdrop-filter: blur(8px) saturate(175%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* === Element themes (火 / 土 / 风 / 水) =============================
+   The four-element palette is the project's strongest unused signal: every
+   sign already carries `element`, so all that is missing is a name for the
+   colour. Picked from the historical Chinese material palette (朱砂 / 赭石
+   / 青灰 / 靛蓝) rather than a flat brand ramp, so the project carries a
+   point of view instead of looking like a generic dashboard.
+
+   The page reads the card's tone from body[data-tone] set by Carousel.jsx
+   on focus, and the utilities below pick it up. Falls back to ink black
+   when no tone is set, so the canvas behind the overlay is unchanged. */
+:root {
+  --element-accent: #14180f;
+  --element-ink: #14180f;
+  --element-ink-soft: rgba(20, 24, 15, 0.55);
+  --element-tint: rgba(20, 24, 15, 0.06);
+  --element-rule: rgba(20, 24, 15, 0.14);
+  /* Source Han Serif (SIL OFL) is the modern open-source Chinese serif.
+     Fall through the platform name until something matches — Songti SC on
+     macOS, SimSun on Windows, generic "serif" elsewhere. */
+  /* Display: 庞门正道细线体 carries the headlines, card names and any
+     large setting. The Night Watch leads the stack on purpose — it has zero
+     CJK coverage, so Latin/digits resolve to it and every Chinese glyph
+     falls straight through to the display face. It is a thin display cut:
+     below ~16px the hairlines break up, so body copy stays on the sans.
+     Falls back to Source Han Serif (SIL OFL) if the face is missing. */
+  --font-cn-display:
+    "TheNightWatch", "PangMenZhengDaoXiXianTi", "庞门正道细线体",
+    "PangMenZhengDao-XiXian", "Source Han Serif SC", "Noto Serif CJK SC",
+    "Source Han Serif", "Songti SC", "STSong", "SimSun", serif;
+  /* Latin: The Night Watch for every English / digit / uppercase label.
+     Decorative blackletter — it is a display voice, not a reading voice,
+     which is exactly why it only ever wins on Latin glyphs. */
+  --font-en: "TheNightWatch", "Satoshi", "Geist", system-ui, sans-serif;
+  --font-cn-serif:
+    "TheNightWatch", "PangMenZhengDaoXiXianTi", "庞门正道细线体",
+    "PangMenZhengDao-XiXian", "Source Han Serif SC", "Noto Serif CJK SC",
+    "Source Han Serif", "Songti SC", "STSong", "SimSun", serif;
+  --font-cn-sans:
+    "TheNightWatch", "PingFang SC", "Source Han Sans SC", "Noto Sans CJK SC",
+    "Microsoft YaHei", system-ui, sans-serif;
+}
+/* Tone-driven accent. The zodiac's four elements used to sit here; with
+   the signs gone the palette follows the deck's own axis — light reads
+   warm (brass), shadow cool (indigo), neutral green-grey. */
+body[data-tone="light"] {
+  --element-accent: #a8753a;
+  --element-ink: #5a3a1f;
+  --element-ink-soft: rgba(90, 58, 31, 0.6);
+  --element-tint: rgba(168, 117, 58, 0.08);
+  --element-rule: rgba(168, 117, 58, 0.30);
+}
+body[data-tone="shadow"] {
+  --element-accent: #3c4c72;
+  --element-ink: #1b2438;
+  --element-ink-soft: rgba(27, 36, 56, 0.6);
+  --element-tint: rgba(60, 76, 114, 0.08);
+  --element-rule: rgba(60, 76, 114, 0.28);
+}
+body[data-tone="neutral"] {
+  --element-accent: #4f6f5f;
+  --element-ink: #22332a;
+  --element-ink-soft: rgba(34, 51, 42, 0.6);
+  --element-tint: rgba(79, 111, 95, 0.08);
+  --element-rule: rgba(79, 111, 95, 0.28);
+}
+
+/* Tone-driven surfaces. Scoped so the WebGL ring keeps its own ink
+   and only the overlay picks up the change. */
+body[data-tone] .glass-panel {
+  border-color: var(--element-rule);
+}
+body[data-tone] .element-accent { color: var(--element-accent); }
+body[data-tone] .element-ink { color: var(--element-ink); }
+body[data-tone] .element-rule { border-color: var(--element-rule); }
+body[data-tone] .element-tint-bg { background: var(--element-tint); }
+body[data-tone] .element-serif {
+  font-family: var(--font-cn-serif);
+  color: var(--element-ink);
+}
+
+/* Chinese type stacks. `.cn-serif` / `.cn-display` are the headline voice
+   (card name, oracle title) and now lead with 庞门正道细线体; `.cn-sans`
+   is the chrome and body copy, where the hairline display cut would be
+   too thin to read. The Night Watch leads every stack that can see Latin
+   glyphs, so English picks up the display face while CJK falls through. */
+.cn-serif { font-family: var(--font-cn-display); }
+.cn-display { font-family: var(--font-cn-display); }
+.cn-sans { font-family: var(--font-cn-sans); }
+.cn-en { font-family: var(--font-en); }
+
+/* The three-second hold before the pick. Two rings pulse out of sync while
+   the visitor sits with the question; the flow advances on `animationend`
+   from the last iteration, so the pause is measured in CSS and costs no JS
+   timer. Three iterations, not infinite — an infinite loop never fires
+   animationend and the flow would stall on this screen forever. */
+.breathe-ring {
+  animation: breathe-out 1.5s ease-in-out 3 both;
+}
+.breathe-ring-delay {
+  animation-delay: 0.75s;
+}
+.breathe-core {
+  animation: breathe-core 1.5s ease-in-out infinite;
+}
+@keyframes breathe-out {
+  0% {
+    transform: scale(0.82);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
+}
+@keyframes breathe-core {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.07);
+  }
+}
+
+/* === Card interactions ==============================================
+   One effect the oracle cards get, pure CSS so the main thread only pays
+   for the compositor.
+
+   .halo-spin — a light that runs around the edge while hovered. A conic
+   highlight disk lives in ::before and physically rotates; the element is
+   masked down to a 2px ring with the classic content-box xor trick, so
+   only the band of the disk that crosses the edge shows. Rotating the disk
+   (not the gradient) is what sweeps the highlight along the rim without
+   needing @property angle registration. Parent does group:hover to reveal.
+
+   The pick → reveal flip is a WAAPI animation owned by OracleFlow (see
+   flipRect there), so this file carries no keyframes for it. */
+.halo-spin {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  padding: 2.5px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  /* Mask down to the border ring only. `content-box` knocks out the
+     middle; xor / exclude subtracts it from the outer box. Two vendor
+     spellings, both real: Chrome prefixed, Firefox standard. */
+  -webkit-mask: linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+.halo-spin::before {
+  content: "";
+  position: absolute;
+  inset: -120%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--halo-a, rgba(255, 255, 255, 0.9)) 40deg,
+    var(--halo-b, rgba(255, 230, 190, 0.85)) 72deg,
+    transparent 110deg,
+    transparent 360deg
+  );
+  animation: halo-turn 2.6s linear infinite;
+}
+.group:hover .halo-spin,
+.group:focus-visible .halo-spin {
+  opacity: 1;
+}
+@keyframes halo-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Reduced motion: the WebGL ring still animates (the user has to be able to
+   see the carousel do its thing), but every glass / button / chip transition
+   drops to a hard switch so the overlay does not shimmer in for 380ms when
+   the visitor has asked the system not to animate.
+
+   The breathe rings keep a token animation rather than `none`: killing the
+   animation entirely would also kill the animationend event the flow waits
+   on, stranding the visitor on the breathing screen with no way forward.
+   Same rule applies to .card-fly below — it is the event the step change
+   waits on. */
+@media (prefers-reduced-motion: reduce) {
+  .glass-panel,
+  .glass-scrim,
+  .glass-chip,
+  .liquid-btn,
+  .liquid-card,
+  .spec-btn::after,
+  .plate {
+    transition: none !important;
+  }
+  .breathe-ring {
+    animation: breathe-out 0.01s linear 1 both;
+  }
+  .breathe-ring-delay {
+    animation-delay: 0s;
+    animation-iteration-count: 1;
+  }
+  .breathe-core {
+    animation: none;
+  }
+  /* Holo stays visible (the tilt is what makes the card feel like an
+   object) but the tracking animation and the glare fade are cut. */
+  .halo-spin::before {
+    animation: none;
+  }
+  .holo-tilt {
+    transition: none !important;
+  }
+  .holo-glare,
+  .holo-foil,
+  .holo-border {
+    transition: none !important;
+  }
+}
+
+/* === HoloCard — 3D 全息闪卡 ========================================
+   Port of the "3D全息流光闪卡" reference (card.txt). Four custom props
+   written by the pointer handler in components/HoloCard.jsx:
+
+     --rx / --ry   tilt, in degrees, from the pointer's offset off centre
+     --px / --py   pointer position as a %, drives the glare/foil focal
+     --holofx      0 at rest, 1 while the pointer is over the card
+
+   Layering per plate, back to front: image → glare → foil → border.
+   The plate itself is FLAT and clips, which is what actually holds the
+   rounded corners on the blend layers — see the note in HoloCard.jsx.
+
+   Blend modes are the reference's, but the stops are rebalanced for
+   bright tarot artwork rather than the reference's near-black stage:
+   the glare carries far less black, and the foil's peak is capped by
+   --foil-max so `color-dodge` sheens instead of blowing out to white. */
+.holo-tilt {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform: rotateY(var(--ry, 0deg)) rotateX(var(--rx, 0deg));
+  /* Short, always-on transition. The old version toggled transition on/off
+  // via an .is-interacting class so move tracked 1:1 and leave eased back.
+  // That swap of the easing mid-gesture was visible as a stagger on hover
+  // return; a uniform 0.18s ease-out is too short to read as lag but is
+  // long enough to smooth rAF jitter, and the eye fills in the rest. */
+  transition: transform 0.18s ease-out;
+  transform-style: preserve-3d;
+}
+.holo-plate {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--holo-radius, 20px);
+  overflow: hidden;
+  /* No background fill — when the card tilts past ~80° both the front and
+     back plates go backface-hidden invisible, and any opaque colour here
+     leaks out as a pale rectangle between them. The plate should be a
+     pure clip mask; the art is the only thing on top of the canvas. */
+  background: transparent;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.holo-plate--back {
+  transform: rotateY(180deg);
+}
+.holo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Slight overscale gives the tilt somewhere to travel — without it
+     the card's edges pull away from their own frame at the extremes.
+     1.02 (not the old 1.06) keeps the deck's silver border and the
+     bottom ornament from being clipped at rest. */
+  transform: scale(1.02);
+  pointer-events: none;
+  user-select: none;
+}
+/* White bloom that follows the cursor. */
+.holo-glare {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    farthest-corner circle at var(--px, 50%) var(--py, 50%),
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.3) 22%,
+    rgba(90, 78, 58, 0.22) 90%
+  );
+  mix-blend-mode: hard-light;
+  opacity: calc(var(--holofx, 0) * var(--glare-max, 0.5));
+  transition: opacity 0.18s ease-out;
+  pointer-events: none;
+}
+/* Silver foil — a metallic sheen, not the old rainbow. Three neutral
+   stops build the silver reflection: a soft cool grey on the trailing
+   edge, near-white at the focal point, and warm grey on the leading
+   edge. `screen` is what makes it read as metal; the previous colour-
+   dodge worked because RGB peaks in opposite channels. The peak white
+   stop is what carries the iridescence now, not the hue.
+
+   Stops are deliberately tight (~12% white band) — the previous
+   24% wide band read as a wash rather than a glint, and the visitor
+   asked for the silver to be "finer". The thin band also matches how
+   real metal reflects: a single hard edge, not a feathered gradient. */
+.holo-foil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    rgba(190, 198, 210, 0.85) 47%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(210, 200, 188, 0.85) 53%,
+    transparent 58%
+  );
+  background-size: 200% 200%;
+  background-position: var(--px, 50%) var(--py, 50%);
+  mix-blend-mode: screen;
+  opacity: calc(var(--holofx, 0) * var(--foil-max, 0.42));
+  transition: opacity 0.18s ease-out;
+  pointer-events: none;
+}
+/* Rim catch-light, so the edge reads as a physical bevel. */
+.holo-border {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--holo-radius, 20px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: radial-gradient(
+    farthest-corner circle at var(--px, 50%) var(--py, 50%),
+    rgba(255, 255, 255, 0.5) 0%,
+    transparent 40%
+  );
+  opacity: calc(var(--holofx, 0) * 0.9);
+  transition: opacity 0.18s ease-out;
+  pointer-events: none;
+}
+
+/* Pick-card hover. Two things need to compose with the inline fan
+   transform, which is why both live in custom props instead of Tailwind
+   utilities (a utility would be overridden by the inline style and
+   silently no-op):
+     --lift    upward float on hover
+     --z-base  resting z-index per slot, set via :nth-child below
+   Hover escalates z-index directly to 100, which is above any sibling —
+   the focused card sits in front no matter where it is in the fan.
+
+   `overflow: hidden` is the safety net: even though HoloCard's plate
+   already clips to its own radius, the <button> container is a sibling
+   that holds a backdrop-filter for the Liquid Glass effect on other
+   buttons. Without overflow:hidden here, any sub-pixel sliver of a
+   backdrop-filter on a parent could leak out at the corners when the
+   card is tilted. Belt and braces. */
+.pick-card {
+  --lift: 0px;
+  --z-base: 1;
+  z-index: var(--z-base);
+  overflow: hidden;
+  transition: z-index 0s; /* snap on enter/leave, no animated climb */
+}
+.pick-card:nth-child(1) { --z-base: 1; }
+.pick-card:nth-child(2) { --z-base: 2; }
+.pick-card:nth-child(3) { --z-base: 3; }
+.pick-card:nth-child(4) { --z-base: 4; }
+.pick-card:hover,
+.pick-card:focus-visible {
+  --lift: -18px;
+  z-index: 100;
+}
+
+/* === Oracle reveal — full-height card ==============================
+   The whole step is laid out as a 100dvh grid so the visitor never has
+   to scroll: the header sits in row 1, the card + copy in row 2,
+   the action buttons in row 3, the footer in row 4. Row gaps replace
+   the previous flex gap + margin-bottom dance, which was double-
+   counting the spacing.
+
+   A previous attempt used `1fr` for the card row. That cascaded into
+   a sizing deadlock: the 1fr row's size depends on the figure's
+   intrinsic height, but the figure's `height: 100%` is in turn resolved
+   against the 1fr row. With nothing on either side giving the loop a
+   starting value, both resolved to 0 and the card disappeared. Using
+   a deterministic `calc(100dvh - header - actions - footer)` for the
+   reveal row breaks the loop — both axes now have a known value and
+   the figure's width is computed from it directly.
+
+   The figure still wants 100:179 to keep the art undistorted. The
+   figure's width is `reveal-h * 100/179`, with max-width / max-height
+   clamping the plate if the column is narrower than the derived width
+   or the row shorter than expected. */
+.oracle-step--reveal {
+  width: min(94vw, 1180px);
+  height: 100dvh;
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  row-gap: 18px;
+  align-items: stretch;
+}
+.oracle-reveal {
+  /* reveal row height = viewport minus the four fixed bands above and
+     below (header ≈ 80px, actions ≈ 60px, footer ≈ 30px, plus three
+     18px row gaps = 54px). 220px is a tight upper bound for the bands
+     at desktop; the max(200px, …) floor protects against a negative
+     value on short viewports. */
+  --reveal-h: max(200px, calc(100dvh - 220px));
+  height: var(--reveal-h);
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+@media (min-width: 640px) {
+  .oracle-reveal {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 36px;
+  }
+}
+.oracle-reveal-figure {
+  position: relative;
+  /* Width is derived from --reveal-h, which is in turn a calc against
+     the viewport, so the figure has a real number on every render. The
+     aspect-ratio is the redundancy that holds the shape even if either
+     axis is clamped below the derived value. */
+  height: 100%;
+  width: calc(var(--reveal-h) * 100 / 179);
+  max-width: 100%;
+  max-height: 100%;
+  align-self: center;
+  justify-self: center;
+  margin: 0 auto;
+  aspect-ratio: 100 / 179;
+  perspective: 1200px;
+}
+/* The FLIP target. Animation is owned by OracleFlow (flipRect); this only
+   has to keep the 3D context open so the half-turn swaps the plates. */
+.oracle-reveal-flip {
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+.oracle-reveal-caption {
+  /* Caption now lives in the right column with the rest of the copy
+     (.oracle-reveal-meta) — at full screen height there is no room
+     under the card, and the previous absolute overlay at the bottom of
+     the figure carried a black-to-transparent scrim that the visitor
+     read as a drop shadow. Moving the caption out removes that scrim
+     for free. The class itself stays in case a future overlay needs it. */
+  display: none;
+}
+.oracle-reveal-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: center;
+  /* In the new flex layout the parent grid's row is whatever vertical
+     space the header + buttons leave, so the column fills that. The
+     --reveal-h fallback is still the 64dvh default for any caller that
+     bypasses the flex parent. */
+  max-height: var(--reveal-h, 64dvh);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+/* Card name + 正逆位 in the right column. Used to live as an absolute
+   bottom-of-card scrim; the scrim read as a drop shadow so the visitor
+   asked to remove it. Putting the meta in the column keeps the card
+   itself clean of any text and gives the name a stable spot. */
+.oracle-reveal-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(20, 24, 15, 0.08);
+  margin-bottom: 6px;
+}
+.oracle-reveal-meta .cn-serif {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.oracle-reveal-meta .cn-sans {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(20, 24, 15, 0.05);
+  color: rgba(20, 24, 15, 0.7);
+}
+.oracle-reveal-meta .cn-sans.is-reversed {
+  background: rgba(180, 60, 50, 0.12);
+  color: rgba(160, 40, 30, 0.95);
+}
+@media (max-width: 639px) {
+  .oracle-step--reveal {
+    /* Mobile keeps the page-level scroll: a 100dvh clip on a 13" phone
+       is fine on the topic/breathe steps, but the reveal reading is
+       long enough that clipping it would lose the answer. The step
+       grows to its natural height and the page scrolls. */
+    height: auto;
+    min-height: 100dvh;
+    /* All four rows fall to their content's intrinsic height — the
+       figure and copy stack vertically as the user scrolls through
+       them. 1fr in the desktop grid would collapse to 0 here because
+       the parent has no fixed height to split. */
+    grid-template-rows: auto auto auto auto;
+  }
+  .oracle-reveal {
+    /* On mobile the row has no fixed height to subtract from; let the
+       figure derive its height from its own width × aspect ratio so it
+       scales with the column instead of staying pinned at 200px. */
+    height: auto;
+    --reveal-h: auto;
+  }
+  .oracle-reveal-figure {
+    /* Mobile has a single column, so the figure fills the column width
+       and the height comes from the aspect ratio. No dvh subtraction
+       here — on a phone dvh is tiny and the calc would over-constrain
+       the figure. */
+    width: min(100%, 320px);
+    height: auto;
+    margin: 0 auto;
+  }
+  .oracle-reveal-copy {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* === Oracle stage (divination overlay backdrop) =====================
+   The overlay is a full-bleed stage rather than a dialog card: the plate
+   the visitor came in from is blown up to fill the screen and reduced to a
+   ~10% wash behind a ring of Major Arcana names (TarotVortex), and each
+   flow step floats directly on the fogged canvas. No box, no frame — the
+   only glass left is on the buttons and chips. The soft top light keeps
+   the step copy bright; the ivory base keeps the page behind (the WebGL
+   ring) from bleeding through. The plate is split into three passes
+   (wash / texture / grain) so the wash is always felt and never flat. */
+.oracle-stage {
+  background:
+    linear-gradient(180deg, rgba(250, 247, 240, 0.92), rgba(247, 243, 234, 0.72) 30%, rgba(240, 235, 224, 0.78) 100%);
+  box-shadow:
+    inset 0 24px 60px -24px rgba(255, 255, 255, 0.85),
+    inset 0 120px 160px -80px rgba(255, 255, 255, 0.5);
+}
+.oracle-art {
+  /* Full opacity now — the wash came out too cold and lost the plate. A
+     soft blur still keeps it from reading as a hard rectangle, and the
+     .oracle-art-whiten pass on top drops it to a ~15% tint of white. */
+  filter: blur(36px) saturate(1.05) brightness(1.04);
+  opacity: 1;
+  transform: scale(1.22);
+}
+.oracle-art-whiten {
+  /* The 85% white that turns the plate into a near-paper wash. opacity is
+     applied in the normal blend against the art layer underneath, so the
+     art is still faintly readable underneath (15% of its own colour shows
+     through). Keep this above the texture pass so texture can multiply into
+     the wash instead of the original plate. */
+  background: #ffffff;
+  opacity: 0.85;
+  pointer-events: none;
+}
+.oracle-art-texture {
+  /* Kept darker / higher contrast than before — multiplied into the white
+     wash, the texture pass lands as subtle figure/shadow rather than a
+     visible second image. */
+  filter: blur(10px) saturate(1.1) contrast(1.4) brightness(0.92);
+  opacity: 0.18;
+  mix-blend-mode: multiply;
+}
+.oracle-grain {
+  /* SVG feTurbulence grain: keeps tooth on the wash even where the
+     texture pass is too blurred to land a mark, so the page never
+     looks like flat paper. Encoded as a data URI so it needs no asset
+     and ships with the CSS. */
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.45 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+  opacity: 0.07;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+@keyframes oracle-art-in {
+  from {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.22);
+  }
+}
+@keyframes oracle-art-whiten-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.85;
+  }
+}
+.animate-oracle-art {
+  animation: oracle-art-in 900ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.animate-oracle-art-whiten {
+  animation: oracle-art-whiten-in 900ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-oracle-art,
+  .animate-oracle-art-whiten {
+    animation: none;
+  }
+}
+/* Frameless step content. The old glass-panel white sheet + inner shadow is
+   gone on purpose; text now sits directly on the fogged canvas with drop
+   shadows doing the separation instead of a rectangle. `m-auto` centres it
+   in the scroll viewport when short and falls back to top-aligned + scroll
+   when taller than the screen — the CSS-safe version of justify-center. */
+.oracle-step {
+  margin: auto;
+  width: min(92vw, 820px);
+  text-shadow:
+    0 1px 0 rgba(255, 253, 248, 0.9),
+    0 0 14px rgba(255, 253, 248, 0.85),
+    0 0 34px rgba(244, 240, 230, 0.9);
+}
+/* Readable long copy inside a step even over the busiest part of the art:
+   paper-ink on a light halation. Scoped so plain labels stay subtle. */
+.oracle-step p,
+.oracle-step .oracle-label {
+  text-shadow:
+    0 1px 0 rgba(255, 253, 248, 0.95),
+    0 0 10px rgba(255, 253, 248, 0.9),
+    0 0 26px rgba(244, 240, 230, 0.95);
+}
+@media (max-width: 640px) {
+  .oracle-step { width: 94vw; }
+}
+
+/* ---- Topic picker ------------------------------------------------- *
+ * Nine tiles in three labelled rows. The row head is the whole trick:
+ * without it the same nine read as a wall and people bounce off it.
+ * ------------------------------------------------------------------- */
+.oracle-topics {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.oracle-topic-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
+.oracle-topic-group-head > span:first-child {
+  font-family: var(--font-cn-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(20, 24, 15, 0.72);
+}
+.oracle-topic-group-head > span:last-child {
+  font-family: var(--font-cn-sans);
+  font-size: 11px;
+  color: rgba(20, 24, 15, 0.34);
+}
+
+/* Free-text question. Sits below the presets rather than replacing them —
+   most people take a preset, and a form as the only way in looks like
+   work. Deliberately not a "plate": it should read as an aside. */
+.oracle-custom {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+.oracle-custom-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 11px 14px;
+  border: 1px solid rgba(20, 24, 15, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 253, 248, 0.5);
+  font-family: var(--font-cn-sans);
+  font-size: 14px;
+  color: #14180f;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+.oracle-custom-input::placeholder { color: rgba(20, 24, 15, 0.32); }
+.oracle-custom-input:focus {
+  outline: none;
+  border-color: rgba(20, 24, 15, 0.4);
+  background: rgba(255, 253, 248, 0.78);
+}
+.oracle-custom-go {
+  flex: 0 0 auto;
+  padding: 0 18px;
+  border: 1px solid rgba(20, 24, 15, 0.18);
+  border-radius: 12px;
+  background: rgba(20, 24, 15, 0.05);
+  font-family: var(--font-cn-display);
+  font-size: 13px;
+  color: #14180f;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.oracle-custom-go:hover:not(:disabled) {
+  background: rgba(20, 24, 15, 0.11);
+  border-color: rgba(20, 24, 15, 0.3);
+}
+.oracle-custom-go:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+/* ---- 他 / 她 toggle ----------------------------------------------- *
+ * Segmented control, not a select: two taps, no dropdown, and the
+ * unselected state is meaningful (the copy falls back to 对方).
+ * ------------------------------------------------------------------- */
+.oracle-gender {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.oracle-gender-label {
+  font-family: var(--font-cn-sans);
+  font-size: 12px;
+  color: rgba(20, 24, 15, 0.42);
+}
+.oracle-gender-switch {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid rgba(20, 24, 15, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.5);
+}
+.oracle-gender-opt {
+  min-width: 54px;
+  padding: 6px 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-family: var(--font-cn-display);
+  font-size: 15px;
+  color: rgba(20, 24, 15, 0.5);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.oracle-gender-opt:hover { color: rgba(20, 24, 15, 0.82); }
+.oracle-gender-opt.is-on {
+  background: rgba(20, 24, 15, 0.86);
+  color: #fffdf8;
+}
+/* Label used in the reveal copy column: a hairline that fades out on the
+   right — cleaner than a full-width bordered plate under each block. */
+.oracle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Uppercase Latin labels — The Night Watch's blackletter forms are
+     exactly what this tracking-wide treatment wants. */
+  font-family: var(--font-en);
+  color: rgba(20, 24, 15, 0.42);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.oracle-label::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  min-width: 18px;
+  background: linear-gradient(90deg, var(--element-rule, rgba(20, 24, 15, 0.14)), rgba(20, 24, 15, 0));
+}
+/* ---- Advanced spreads (78 cards) ---------------------------------- *
+ * The deal screen is a grid of face-down cards sized by count: 3 cards
+ * can be large, 10 have to be small. Rather than a media query per
+ * spread, --cols is set from the card count and the card width is
+ * derived, so adding a spread needs no new CSS.
+ * ------------------------------------------------------------------- */
+.spread-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  justify-items: center;
+}
+.spread-grid[data-count="3"] { --cols: 3; }
+.spread-grid[data-count="4"] { --cols: 4; }
+.spread-grid[data-count="5"] { --cols: 5; }
+.spread-grid[data-count="10"] { --cols: 5; }
+@media (max-width: 860px) {
+  .spread-grid[data-count="4"],
+  .spread-grid[data-count="5"],
+  .spread-grid[data-count="10"] { --cols: 4; }
+}
+@media (max-width: 640px) {
+  .spread-grid { --cols: 3 !important; }
+}
+
+.spread-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 150px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition: transform 0.18s ease-out;
+}
+.spread-card:disabled { cursor: default; }
+/* Only the next card to turn is lifted — with ten cards on screen an
+   equal hover on all of them reads as noise, and the sequence is the
+   point of this screen. */
+.spread-card.is-next { transform: translateY(-6px); }
+.spread-card-inner {
+  width: 100%;
+  aspect-ratio: 100 / 179;
+}
+.spread-card-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-height: 30px;
+}
+.spread-slot {
+  font-family: var(--font-cn-sans);
+  font-size: 11px;
+  color: rgba(20, 24, 15, 0.5);
+}
+.spread-name {
+  font-family: var(--font-cn-display);
+  font-size: 12px;
+  color: #14180f;
+}
+.spread-name.is-rev { color: rgba(168, 69, 42, 0.85); }
+
+/* ---- Reading (position by position) -------------------------------- */
+.spread-reading {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.spread-reading-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(20, 24, 15, 0.08);
+}
+.spread-reading-row:last-child { border-bottom: 0; }
+.spread-reading-card {
+  width: 64px;
+  aspect-ratio: 100 / 179;
+}
+.spread-reading-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+.spread-reading-slot {
+  font-family: var(--font-cn-sans);
+  font-size: 11px;
+  color: rgba(20, 24, 15, 0.42);
+}
+.spread-reading-name {
+  font-family: var(--font-cn-display);
+  font-size: 17px;
+  font-weight: 600;
+}
+.spread-reading-tag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(20, 24, 15, 0.07);
+  font-family: var(--font-cn-sans);
+  font-size: 10px;
+  color: rgba(20, 24, 15, 0.6);
+}
+.spread-reading-tag.is-rev {
+  background: rgba(168, 69, 42, 0.12);
+  color: rgba(168, 69, 42, 0.9);
+}
+.spread-reading-kw {
+  font-family: var(--font-cn-sans);
+  font-size: 11px;
+  color: rgba(20, 24, 15, 0.38);
+}
+@media (max-width: 640px) {
+  .spread-reading-row { grid-template-columns: 48px minmax(0, 1fr); gap: 12px; }
+  .spread-reading-card { width: 48px; }
+}
+
+.spread-summary {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: rgba(255, 253, 248, 0.5);
+  border: 1px solid rgba(20, 24, 15, 0.08);
+}
+.spread-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(20, 24, 15, 0.08);
+  font-family: var(--font-cn-sans);
+  font-size: 11px;
+  color: rgba(20, 24, 15, 0.42);
+}
+
+/* Card depth on the reveal — the plate surface is gone, so the silhouette
+   is carried by the shadow instead of a white rectangle. */
+.oracle-step figure {
+  filter: saturate(1.02);
+}
+
+/* ------------------------------------------------------------------ *
+ * 玩法菜单 — the five ways in, top right over the ring.
+ *
+ * Deliberately NOT a card index. The meta lockup already names the card
+ * facing front, so a second column of the same 22 names would only compete
+ * with it; what was missing was somewhere to choose how to read.
+ *
+ * Rows answer to the pointer, the gaps between them do not — the canvas
+ * underneath owns the drag, and a row that stood in for a full column
+ * would steal every throw that passed under it. Sized in em off the
+ * column's own font-size (meta.js sets it), so the whole menu takes the
+ * narrow-band bump with every other label.
+ * ------------------------------------------------------------------ */
+.play-list {
+  /* Deliberately no `display` here. This file is unlayered, and unlayered
+     rules outrank everything in Tailwind's `utilities` layer — so a
+     `display: flex` written here would quietly beat the `max-sm:hidden` on
+     the element and leave the menu sitting on top of the ring on a phone.
+     The layout (flex / column / items-end) comes from the utility classes
+     in the JSX instead. */
+  gap: 0.42em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The row is a piece of hardware now, not a line of text. Two inset edges
+   (a hairline outline plus a bright top lip) and two outer shadows (a 1px
+   contact shadow and a wide soft one) is the whole trick — that is what
+   separates a button from a rectangle with a border. The values are lifted
+   from the ThreeUI skeuomorphic switch: track #e6e8ec, hairline
+   rgba(9,12,20,0.09), thumb shadow 0 1px 1px / 0 6px 14px -4px. */
+.play-row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.18em;
+  /* One width for all five, wide enough for the longest description
+     ("现状 + 两条路各自的发展与结果" at 0.78em, which measures 14.8em).
+     min-width rather than width: the row sizes to whichever is larger, so
+     the column reads as a stack of switches and not a ragged staircase. */
+  min-width: 14.9em;
+  padding: 0.58em 0.86em 0.64em;
+  border-radius: 0.72em;
+  /* Opaque, not translucent. A pale plate lets the ring show through and
+     immediately looks like paper again; sheet metal does not. */
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #eef1f6 46%,
+    #d3d9e3 100%
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(9, 12, 20, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(9, 12, 20, 0.06),
+    0 1px 1px rgba(9, 12, 20, 0.07),
+    0 8px 16px -10px rgba(9, 12, 20, 0.38);
+  opacity: 0.6;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.24s ease;
+}
+.play-row:hover,
+.play-row:focus-visible {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 1px rgba(9, 12, 20, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(9, 12, 20, 0.05),
+    0 2px 2px rgba(9, 12, 20, 0.07),
+    0 12px 22px -12px rgba(9, 12, 20, 0.4);
+}
+/* Lit, the way the switch lights when it is thrown: the plate goes plain
+   white and the accent bleeds in from the edges. #2f6bff is the toggle's
+   own accent. Type colour never changes — the glow is the whole signal. */
+.play-row.is-on {
+  opacity: 1;
+  background: linear-gradient(180deg, #ffffff 0%, #f6f8fc 54%, #e3e7ef 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(47, 107, 255, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 0 20px -7px rgba(47, 107, 255, 0.6),
+    0 1px 1px rgba(9, 12, 20, 0.07),
+    0 10px 20px -12px rgba(9, 12, 20, 0.42);
+}
+
+.play-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.44em;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+/* Struck from the silver gradient in ring/sigil.jsx, so these stay flat
+   strokes — no colour, no fill, nothing that can drift with the OS emoji
+   font. The plate is pale enough underneath that they read as marks
+   pressed into metal rather than as stickers. */
+.play-sigil {
+  width: 1.4em;
+  height: 1.4em;
+  flex: none;
+  opacity: 0.94;
+  /* The 1px white under the mark is the pressed edge: dark line, light
+     lip. Without it the silver reads as a smudge rather than an incision. */
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.95));
+  transition:
+    opacity 0.2s ease,
+    filter 0.2s ease;
+}
+.play-row:hover .play-sigil {
+  opacity: 1;
+}
+.play-row.is-on .play-sigil {
+  opacity: 1;
+  filter:
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.95))
+    drop-shadow(0 0 3px rgba(47, 107, 255, 0.45));
+}
+.play-level {
+  padding: 0.1em 0.45em;
+  border-radius: 999px;
+  font-size: 0.6em;
+  letter-spacing: 0.08em;
+  /* Inset rather than outlined — a tag stamped into the plate, not a
+     sticker sitting on top of it. */
+  color: rgba(10, 10, 10, 0.62);
+  background: rgba(9, 12, 20, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(9, 12, 20, 0.1);
+}
+.play-desc {
+  margin-top: 0.06em;
+  font-size: 0.78em;
+  line-height: 1.25;
+  white-space: nowrap;
+  opacity: 0.52;
+  /* 1.4em sigil + 0.44em gap, divided by this rule's own 0.78em, so the
+     line starts under the name and not under the mark. */
+  padding-left: 2.36em;
+  transition: opacity 0.18s ease;
+}
+.play-row:hover .play-desc {
+  opacity: 0.7;
+}
