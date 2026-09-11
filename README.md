@@ -52,8 +52,9 @@ Then open <http://localhost:3000>.
 
 Built with Next.js 16 (App Router), React 19, Three.js, GSAP and Tailwind v4.
 
-> **PP Neue Montreal is bundled for development only** and is not licensed for
-> commercial use by this project. See [Fonts](#fonts).
+> **Everything in this repo is redistributable.** The commercial PP Neue
+> Montreal face that the original Viscose bundled has been removed — see
+> [Fonts](#fonts).
 
 ## What you can interact with
 
@@ -129,27 +130,22 @@ people's work** collected to build the layout against. See
 
 ### Fonts
 
-Three families, declared in `app/globals.css` and looked up **by name** from
+Two families, declared in `app/globals.css` and looked up **by name** from
 `components/ring/params.js` — so if you swap one, change it in both places.
 
-| Family           | Used for                               | Weights  | Licence                                                |
-| ---------------- | -------------------------------------- | -------- | ------------------------------------------------------ |
-| Satoshi          | project name, discipline, index column | 400, 500 | [Fontshare](https://fontshare.com/fonts/satoshi), free |
-| Geist            | number, year, load counter             | 400      | [OFL](https://github.com/vercel/geist-font)            |
-| PP Neue Montreal | intro heading, cursor tag              | 400      | Pangram Pangram, **commercial**                        |
+| Family  | Used for                               | Weights  | Licence                                             |
+| ------- | -------------------------------------- | -------- | --------------------------------------------------- |
+| Satoshi | project name, discipline, index column | 400, 500 | [Fontshare](https://fontshare.com/fonts/satoshi), free |
+| Geist   | number, year, load counter             | 400      | [OFL](https://github.com/vercel/geist-font)         |
 
-> [!IMPORTANT]
-> **PP Neue Montreal is not licensed by this project.** It is a commercial
-> typeface from [Pangram Pangram](https://pangrampangram.com/products/neue-montreal)
-> and the file is included here **for local development and evaluation only**.
-> It is **not** covered by this repo's MIT licence and **must not be used for
-> commercial purposes**. If you ship anything with it, buy your own licence —
-> or swap `textFont` in `params.js` for Satoshi, which is free for commercial
-> work and already included.
+Both are free to redistribute and use commercially.
 
-Satoshi and Geist are both free to redistribute and use commercially.
+> [!NOTE]
+> The original Viscose bundled **PP Neue Montreal**, a commercial Pangram
+> Pangram typeface, for local development only. It has been removed from this
+> fork, so nothing in the repo carries a licence restriction.
 
-> Fonts are served as `.otf`/`.ttf` (~340 KB total). Converting to `woff2`
+> Fonts are served as `.otf`/`.ttf` (~226 KB total). Converting to `woff2`
 > would cut that by roughly 60% — worth doing before this goes anywhere real.
 
 ## How it's put together
@@ -263,6 +259,3 @@ and are not claims about who made what.
 > **If you made one of these pieces** and would like to be credited, or would
 > like it removed, please [open an issue](../../issues) and I'll sort it out
 > straight away.
-
-The bundled PP Neue Montreal is likewise not licensed by this project — see
-[Fonts](#fonts).

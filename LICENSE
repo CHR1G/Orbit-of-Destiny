@@ -26,12 +26,6 @@ This license covers the source code only.
 
 The contents of `public/` are NOT covered by it:
 
-  - PP Neue Montreal (`public/ppneuemontreal-book.otf`) is a commercial
-    typeface by Pangram Pangram. It is bundled here for local development and
-    evaluation only. It is not licensed by this project, must not be used for
-    commercial purposes, and no rights to it are granted by the terms above.
-    Buy a licence from the foundry, or substitute another face.
-
   - Satoshi (`public/Satoshi-*.otf`) is licensed under the Indian Type
     Foundry Free Font Licence via Fontshare — free for personal and
     commercial use.

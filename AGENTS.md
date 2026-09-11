@@ -197,9 +197,8 @@ is missing versus what is deliberate.
 1. **Clicking a card centres it but nothing opens.** The "View" tag promises a
    destination that does not exist. `pick()` returns early when the card is
    already at the front — that early return is where navigation belongs.
-2. **Fonts are `.otf`/`.ttf`, ~340 KB.** Converting to `woff2` would cut that
-   by roughly 60%. PP Neue Montreal is also gitignored, so the heading falls
-   back on a fresh clone — see below.
+2. **Fonts are `.otf`/`.ttf`, ~226 KB.** Converting to `woff2` would cut that
+   by roughly 60%.
 3. **The art is webp but still oversized.** ~3.3 MB across eighteen files. The
    atlas downsamples every one to a 512px cell, so resizing the sources to
    match would cut it again by a large margin.
@@ -220,12 +219,12 @@ is missing versus what is deliberate.
 
 Two things to respect when adding files.
 
-**PP Neue Montreal is bundled but not licensed.** `public/ppneuemontreal-book.otf`
-is a commercial Pangram Pangram face, kept in the repo so the design renders
-during development. It is called out in the README and LICENSE as development
-only, not for commercial use. Do not quietly widen its use, do not remove the
-notices, and if you swap the heading to a free face, take the file out with it.
-Satoshi (ITF Free Font Licence) and Geist (OFL) have no such restriction.
+**Do not add assets you cannot redistribute.** The original Viscose bundled
+PP Neue Montreal, a commercial Pangram Pangram face, for local development
+only. It has been removed from this fork — do not put it back. Satoshi (ITF
+Free Font Licence) and Geist (OFL) are free, and the deck art lives in
+`public/tarot/`. Anything else needs a licence that permits redistribution
+before it goes in.
 
 **Keep third-party attribution intact.** The simplex noise in
 `planeShaders.js` carries an MIT notice that has to travel with the code. If
