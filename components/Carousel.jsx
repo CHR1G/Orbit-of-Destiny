@@ -11,6 +11,7 @@ import {
   MAX_LINKS,
 } from "./shaders/planeShaders";
 import { buildAtlas } from "./ring/atlas";
+import CardDetail from "./CardDetail";
 import OracleFlow from "./OracleFlow";
 import TarotVortex, { vortexPointer } from "./TarotVortex";
 import { createMeta } from "./ring/meta";
@@ -19,7 +20,7 @@ import { todayStr, preloadTarotImages } from "./ring/tarot";
 import { createTag, TAG_W, TAG_H } from "./ring/tag";
 import { defaultParams } from "./ring/params";
 import { IMAGE_FILES, PROJECTS } from "./ring/projects";
-import { PLAYS } from "./ring/spreads";
+import { PLAYS, PLAY_BY_ID } from "./ring/spreads";
 import { Sigil } from "./ring/sigil";
 import {
   TAU,
@@ -56,11 +57,13 @@ export default function Carousel() {
     right: { box: null, goo: null, layers: [], plain: null },
   });
 
-  // Divination overlay state. `active` = { i, seed, play } for the focused
-  // Major Arcana card; null when nothing is focused. The shader zoom (inside
-  // useEffect) animates the visual; this drives the HTML panel. `dismissRef`
-  // hands the overlay a way to call the effect-scoped exitZoom without prop
-  // drilling.
+  // Divination overlay state. `active` = { i, seed, play, view } for the
+  // focused Major Arcana card; null when nothing is focused. `view` is
+  // "detail" (the card's own panel — what a click on the ring opens) or
+  // "reading" (the OracleFlow steps — what the play menu opens). The
+  // shader zoom (inside useEffect) animates the visual; this drives the
+  // HTML panel. `dismissRef` hands the overlay a way to call the
+  // effect-scoped exitZoom without prop drilling.
   const [active, setActive] = useState(null);
   const dismissRef = useRef(() => {});
   // Lets the right-hand play menu jump the ring to a card from the JSX,
@@ -77,6 +80,12 @@ export default function Carousel() {
   // Lets the play menu open the overlay (or retarget an open one) from the
   // JSX. Same bridge as the two above.
   const openPlayRef = useRef(() => {});
+  // Mobile only. The five-row column needs a side of the screen to live on,
+  // and a portrait phone has none — so below 640px it collapses into one
+  // pill on the bottom edge that names the current play and opens a sheet.
+  // Without it a phone has no way to start a reading at all, which is
+  // exactly what the column's `max-sm:hidden` used to cost.
+  const [playSheet, setPlaySheet] = useState(false);
 
   // Tells the render loop to stop redrawing while the overlay is open. The
   // overlay is real frosted glass (backdrop-filter), and every canvas repaint
@@ -499,12 +508,15 @@ export default function Carousel() {
       idleTimer = 0;
       cruising = false;
     };
-    // nextPlay, when given, is a play id from the right-hand menu: it opens
-    // the reading straight into that mode. Without one the card keeps
-    // whatever play was last chosen, so clicking a second card does not
-    // silently drop someone out of 凯尔特十字 and back to the daily tap.
+    // nextPlay, when given, is a play id from the right-hand menu: the
+    // visitor has already said how they want to read, so the overlay opens
+    // straight on that mode. Without one — a click on a card — the overlay
+    // opens on the card's own detail panel instead, and starting the
+    // reading is a second, deliberate tap from there. Asking a question
+    // before the visitor has seen the card they are asking about was the
+    // wrong order.
     const enterZoom = (i, nextPlay) => {
-      // Already reading this card, with no new play asked for: a repeat
+      // Already focused on this card, with no new play asked for: a repeat
       // click is a no-op.
       if (zoomed && openPlane === i && !nextPlay) return;
       zoomed = true;
@@ -515,10 +527,15 @@ export default function Carousel() {
       const chosen = nextPlay || playRef.current || "daily";
       playRef.current = chosen;
       setPlay(chosen);
-      // Focus the divination overlay on the clicked card. The seed pins the
-      // draw to the day, so the same card reads stable until the date turns.
-      // Named by image, not by the plane that carries it.
-      setActive({ i: cellOfPlane(i), seed: todayStr(), play: chosen });
+      // Focus the overlay on the clicked card. The seed pins the draw to the
+      // day, so the same card reads stable until the date turns. Named by
+      // image, not by the plane that carries it.
+      setActive({
+        i: cellOfPlane(i),
+        seed: todayStr(),
+        play: chosen,
+        view: nextPlay ? "reading" : "detail",
+      });
       dismissRef.current = exitZoom;
     };
     const exitZoom = () => {
@@ -541,14 +558,15 @@ export default function Carousel() {
 
     // The play menu is the other way round: it opens the reading, and the
     // card is whatever happens to be facing front. With the overlay already
-    // up it only retargets the mode — the reading restarts on the new
-    // spread but the visitor keeps the card they were looking at.
+    // up it retargets the mode — and from the card's detail panel it also
+    // starts the reading, because a play picked from the menu means "read
+    // for me", not "show me a bigger picture of the card".
     const openPlay = (id) => {
       wake();
       if (zoomed) {
         playRef.current = id;
         setPlay(id);
-        setActive((a) => (a ? { ...a, play: id } : a));
+        setActive((a) => (a ? { ...a, play: id, view: "reading" } : a));
         return;
       }
       enterZoom(frontI >= 0 ? frontI : 0, id);
@@ -709,23 +727,13 @@ export default function Carousel() {
     container.addEventListener("pointerleave", onPointerLeave);
     container.addEventListener("click", onClick);
 
-    // Esc dismisses a focus without needing to reach for the mouse. While
-    // the picker is open, 1/2/3 selects a card and 0 reshuffles — the same
-    // affordance as clicking, but reachable from the keyboard on the first
-    // visit when the visitor has not discovered the canvas yet.
+    // Esc dismisses a focus without needing to reach for the mouse. The
+    // 1/2/3 / 0 shortcuts that used to sit here are gone: they drove the
+    // picker's index, which lives in the flow component, and the guard in
+    // front of them read `active` out of a closure built on the first
+    // render — where it is always null — so they could never fire.
     const onKeyDown = (e) => {
-      if (e.key === "Escape" && zoomed) {
-        exitZoom();
-        return;
-      }
-      if (!zoomed || !active) return;
-      if (e.key === "1" || e.key === "2" || e.key === "3") {
-        e.preventDefault();
-        setPickedIdx(Number(e.key) - 1);
-      } else if (e.key === "0") {
-        e.preventDefault();
-        setActive((a) => (a ? { ...a, seed: String(Date.now()) } : a));
-      }
+      if (e.key === "Escape" && zoomed) exitZoom();
     };
     window.addEventListener("keydown", onKeyDown);
 
@@ -1602,10 +1610,46 @@ export default function Carousel() {
     };
     // The whole WebGL scene is created once and torn down once. Re-running
     // this effect on every `active` change would dispose the renderer the
-    // moment a card is clicked, so the active reference inside the closures
-    // is intentionally captured fresh.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // moment a card is clicked — every panel transition goes out through
+    // the setters these closures hold, so nothing here needs to depend on
+    // the focused card.
   }, []);
+
+  // Both menus list the same five ways in, so one builder keeps them from
+  // drifting — the desktop column and the phone sheet have to agree on
+  // names, levels, sigils and descriptions. The click is written as a JSX
+  // attribute rather than handed in as a callback: `openPlayRef` may only
+  // be read from an event handler, never while rendering.
+  const playRows = () =>
+    PLAYS.map((p) => {
+      const on = play === p.id;
+      return (
+        <li
+          key={p.id}
+          // Each row opens the reading in its own mode. The list itself
+          // stays pointer-events-none so the gaps between rows never
+          // steal a drag from the canvas underneath.
+          onClick={() => openPlayRef.current(p.id)}
+          className={`play-row pointer-events-auto cursor-pointer${
+            on ? " is-on" : ""
+          }`}
+          aria-current={on ? "true" : undefined}
+        >
+          <span className="play-name">
+            <Sigil name={p.sigil} className="play-sigil" />
+            {p.name}
+            <span className="play-level">
+              {p.level === "basic" ? "初级" : "进阶"}
+            </span>
+          </span>
+          <span className="play-desc">{p.desc}</span>
+        </li>
+      );
+    });
+
+  // What the phone pill reads. Naming the current play is the point: it is
+  // the only place the mode is visible once the column is gone.
+  const currentPlay = PLAYS.find((p) => p.id === play) || PLAYS[0];
 
   return (
     <>
@@ -1632,32 +1676,50 @@ export default function Carousel() {
         }}
         className="play-list pointer-events-none fixed right-[6vw] top-[2.4vh] z-10 flex flex-col items-end leading-[1.4] tracking-[0.01em] text-[#0a0a0a] opacity-0 max-sm:hidden"
       >
-        {PLAYS.map((p) => {
-          const on = play === p.id;
-          return (
-            <li
-              key={p.id}
-              // Each row opens the reading in its own mode. The list itself
-              // stays pointer-events-none so the gaps between rows never
-              // steal a drag from the canvas underneath.
-              onClick={() => openPlayRef.current(p.id)}
-              className={`play-row pointer-events-auto cursor-pointer${
-                on ? " is-on" : ""
-              }`}
-              aria-current={on ? "true" : undefined}
-            >
-              <span className="play-name">
-                <Sigil name={p.sigil} className="play-sigil" />
-                {p.name}
-                <span className="play-level">
-                  {p.level === "basic" ? "初级" : "进阶"}
-                </span>
-              </span>
-              <span className="play-desc">{p.desc}</span>
-            </li>
-          );
-        })}
+        {playRows()}
       </ul>
+
+      {/* Phones get the same five plays through one pill on the bottom edge,
+          which opens a sheet holding the column that no longer fits. Both
+          halves sit behind a single max-width media query in globals.css
+          rather than a `sm:` utility: this block would otherwise need a
+          `display` declaration, and unlayered CSS here outranks every
+          Tailwind responsive class on the same element. */}
+      <div className="play-mobile">
+        {playSheet && (
+          <>
+            <div
+              className="play-scrim"
+              aria-hidden="true"
+              onClick={() => setPlaySheet(false)}
+            />
+            {/* One click on the sheet closes it: a row starts its own play
+                and the click then bubbles up here, so the menu is never
+                left open behind the reading it just opened. */}
+            <ul
+              className="play-sheet"
+              aria-label="占卜玩法"
+              onClick={() => setPlaySheet(false)}
+            >
+              <li className="play-sheet-title" aria-hidden="true">
+                选择玩法
+              </li>
+              {playRows()}
+            </ul>
+          </>
+        )}
+        <button
+          type="button"
+          className={`play-pill${playSheet ? " is-open" : ""}`}
+          aria-expanded={playSheet}
+          aria-label={`占卜玩法：${currentPlay.name}`}
+          onClick={() => setPlaySheet((v) => !v)}
+        >
+          <Sigil name={currentPlay.sigil} className="play-sigil" />
+          <span className="play-pill-name">{currentPlay.name}</span>
+          <span className="play-pill-caret" aria-hidden="true" />
+        </button>
+      </div>
 
       {/* Three rows per side, identical in structure and all carrying both
           words: two inside the filtered wrapper that melt into each other, and
@@ -1762,15 +1824,22 @@ export default function Carousel() {
         </defs>
       </svg>
 
-      {/* Divination overlay — the group-reading flow lives in OracleFlow:
-          pick a topic, hold the question, choose a face-down card, read it.
+      {/* Divination overlay — one stage, two views.
+          `active.view` decides which:
+            "detail"  the card's own panel (CardDetail): the plate blown
+                      up beside what the card means. This is what a click
+                      on the ring opens.
+            "reading" the group-reading flow (OracleFlow): pick a topic,
+                      hold the question, choose a face-down card, read it.
+                      A play picked off the right-hand menu, or 开始占卜
+                      inside the detail panel, lands here.
           Everything past this point is presentation; the draw logic is in
-          ring/tarot.js. The overlay is a full-bleed stage, not a dialog:
-          the plate the visitor clicked in from (blurred ~10% wash) + the
-          ring of Major Arcana names (TarotVortex) turn behind the step
-          content. Clicking the padding around the content, ✕ or Esc (via
-          exitZoom) dismisses; OracleFlow stops propagation on its own
-          surface so taps on the reading never close it. */}
+          ring/tarot.js. The stage is full-bleed, not a dialog: the plate
+          the visitor clicked in from (blurred ~10% wash) backs it, and in
+          the reading view the ring of Major Arcana names (TarotVortex)
+          turns behind the step content. Clicking the padding around the
+          content, ✕ or Esc (via exitZoom) dismisses; both views stop
+          propagation on their own surface so taps inside never close. */}
       {active && (
         <div className="oracle-stage fixed inset-0 z-20">
           {/* Backdrop: the plate the visitor came in from, blown up to fill
@@ -1780,10 +1849,14 @@ export default function Carousel() {
               the engraving's texture, then a fixed grain so the wash
               always has tooth. All sit under the vortex canvas (z-0). */}
           <div className="oracle-backdrop absolute inset-0 z-0 overflow-hidden">
+            {/* Defaulted to undefined, not "" — React warns on an empty src
+                and the browser then re-requests the current page as if it
+                were an image. The overlay mounts one frame before the
+                effect fills `backdrop` in, so the empty case is real. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               key={`${backdrop.key}-wash`}
-              src={backdrop.src}
+              src={backdrop.src || undefined}
               alt=""
               draggable={false}
               decoding="async"
@@ -1796,7 +1869,7 @@ export default function Carousel() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               key={`${backdrop.key}-tex`}
-              src={backdrop.src}
+              src={backdrop.src || undefined}
               alt=""
               draggable={false}
               decoding="async"
@@ -1817,7 +1890,11 @@ export default function Carousel() {
               className="oracle-grain absolute inset-0"
             />
           </div>
-          <TarotVortex />
+          {/* Only the reading view gets the turning name ring. The detail
+              panel is a still, centred composition — a ring of names
+              rotating behind one big card would compete with it, and the
+              point of this view is to look at the card, not the deck. */}
+          {active.view === "reading" && <TarotVortex />}
           <div
             className="absolute inset-0 z-10 overflow-y-auto"
             onClick={() => dismissRef.current()}
@@ -1831,18 +1908,36 @@ export default function Carousel() {
             }}
           >
             <div className="flex min-h-full items-center justify-center px-4 py-6 sm:py-8">
-              <OracleFlow
-                card={PROJECTS[active.i]}
-                seed={active.seed}
-                play={active.play}
-                onClose={() => dismissRef.current()}
-                specMove={specMove}
-                specLeave={specLeave}
-                onRevealCard={(img) =>
-                  setBackdrop({ src: img, key: `card-${img}` })
-                }
-                onResetBackdrop={resetBackdrop}
-              />
+              {active.view === "reading" ? (
+                <OracleFlow
+                  card={PROJECTS[active.i]}
+                  seed={active.seed}
+                  play={active.play}
+                  onClose={() => dismissRef.current()}
+                  specMove={specMove}
+                  specLeave={specLeave}
+                  onRevealCard={(img) =>
+                    setBackdrop({ src: img, key: `card-${img}` })
+                  }
+                  onResetBackdrop={resetBackdrop}
+                />
+              ) : (
+                /* `view` flips to the reading in place — same card, same
+                   seed, so the reading the visitor was promised is the one
+                   they get. The seed is untouched on purpose: re-rolling
+                   it here would make 开始占卜 a draw of its own. */
+                <CardDetail
+                  card={PROJECTS[active.i]}
+                  index={active.i}
+                  playName={PLAY_BY_ID[active.play]?.name}
+                  onStart={() =>
+                    setActive((a) => (a ? { ...a, view: "reading" } : a))
+                  }
+                  onClose={() => dismissRef.current()}
+                  specMove={specMove}
+                  specLeave={specLeave}
+                />
+              )}
             </div>
           </div>
         </div>

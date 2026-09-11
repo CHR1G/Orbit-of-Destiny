@@ -5,7 +5,6 @@ import {
   TOPICS,
   TOPIC_GROUPS,
   CUSTOM_TOPIC_ID,
-  applyGender,
   buildSpreadSeed,
   dealSpread,
   TAROT_BACK,
@@ -57,7 +56,6 @@ export default function SpreadFlow({
   const [step, setStep] = useState(initialSpreadId ? "question" : "spread");
   const [spreadId, setSpreadId] = useState(initialSpreadId);
   const [topicId, setTopicId] = useState(null);
-  const [gender, setGender] = useState(null);
   const [customQuestion, setCustomQuestion] = useState("");
   const [shuffle, setShuffle] = useState(0);
   // How many cards have been turned. Dealt cards stay face-down until
@@ -76,8 +74,8 @@ export default function SpreadFlow({
   const question = useMemo(() => {
     if (topicId === CUSTOM_TOPIC_ID) return customQuestion.trim() || "我自己的问题";
     const t = TOPICS.find((x) => x.id === topicId);
-    return t ? applyGender(t.hook, gender) : "";
-  }, [topicId, customQuestion, gender]);
+    return t ? t.hook : "";
+  }, [topicId, customQuestion]);
 
   const summary = useMemo(
     () => (spread && dealt ? summarize(spread, dealt) : null),
@@ -323,7 +321,6 @@ export default function SpreadFlow({
 
   /* ---------------- Step 3: hold it, then deal ---------------- */
   if (step === "shuffle") {
-    const topic = TOPICS.find((t) => t.id === topicId) || null;
     return (
       <div
         className="oracle-step pointer-events-auto"
@@ -348,34 +345,6 @@ export default function SpreadFlow({
               在心里把这个问题过一遍，再开始洗牌
             </p>
           </div>
-
-          {topic?.person && (
-            <div className="oracle-gender">
-              <span className="oracle-gender-label">你问的是</span>
-              <div
-                className="oracle-gender-switch"
-                role="group"
-                aria-label="选择对方性别"
-              >
-                {[
-                  { k: "m", l: "他" },
-                  { k: "f", l: "她" },
-                ].map((o) => (
-                  <button
-                    key={o.k}
-                    type="button"
-                    aria-pressed={gender === o.k}
-                    onClick={() => setGender(gender === o.k ? null : o.k)}
-                    className={`oracle-gender-opt${
-                      gender === o.k ? " is-on" : ""
-                    }`}
-                  >
-                    {o.l}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <button
             onClick={() => setStep("deal")}

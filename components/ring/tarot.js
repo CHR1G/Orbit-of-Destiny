@@ -178,19 +178,19 @@ export function preloadTarotImages() {
 // labelled rows turn the same nine into "which of these am I", which is the
 // decision they were making anyway.
 //
-// `person` marks a topic whose answer points at a specific somebody. Those
-// get a 他/她 toggle: the reading says "他/她" until the visitor picks one,
-// and every mention resolves to that choice.
+// Every mention of the other person is written as TA. This used to be a
+// gender toggle the visitor had to answer before the reading would advance,
+// but the answer only ever swapped a pronoun — same cards, same paragraphs,
+// same advice. One extra question for zero difference, so it is gone.
 export const TOPICS = [
   {
     id: "love",
     emoji: "💔",
     label: "感情",
     group: "relation",
-    person: true,
-    hook: "他/她到底怎么想的",
+    hook: "TA到底怎么想的",
     prompt: "在心里默念那个人的名字",
-    hint: "暧昧 · 复合 · 他/她有没有在想你",
+    hint: "暧昧 · 复合 · TA有没有在想你",
   },
   {
     id: "career",
@@ -233,7 +233,6 @@ export const TOPICS = [
     emoji: "🤝",
     label: "人际",
     group: "relation",
-    person: true,
     hook: "这段关系该怎么处",
     prompt: "在心里默念那个人的名字",
     hint: "朋友 · 同事 · 误会该不该说开",
@@ -295,17 +294,6 @@ export const TOPIC_GROUPS = [
 
 export const TOPIC_BY_ID = Object.fromEntries(TOPICS.map((t) => [t.id, t]));
 
-// Resolve the "他/她" placeholder. The copy is authored once with the
-// slash form and resolved late — after the visitor has picked — so there
-// is no second copy of every love reading to keep in sync. Unresolved it
-// falls back to 对方, which reads fine but is vaguer; picking is better.
-export function applyGender(text, gender) {
-  if (!text) return text;
-  if (gender === "m") return text.replaceAll("他/她", "他");
-  if (gender === "f") return text.replaceAll("他/她", "她");
-  return text.replaceAll("他/她", "对方");
-}
-
 // Every major arcana leans light, shadow, or somewhere between. The tone
 // picks which topic paragraph the card gets, so 22 cards x 4 topics stay
 // writable (and stay distinct) instead of needing 88 hand-written readings.
@@ -323,9 +311,9 @@ MAJOR_ARCANA.forEach((c) => { c.tone = TONE_BY_ZH[c.zh] || "neutral"; });
 // whole reason these posts get opened, so the reveal opens on one too.
 const HEADLINES = {
   love: {
-    light: ["未来 7 天，这段关系会先给你一个信号", "有 1 句话，他/她一直没说出口", "3 天内，你们的距离会缩短一点"],
-    neutral: ["这件事，答案不在他/她身上", "你要的答案，其实你已经知道了", "72 小时里，别急着先开口"],
-    shadow: ["先停下来：你现在看到的不是全部", "有 1 件事，你一直在骗自己", "这段关系里，卡住的不是他/她"],
+    light: ["未来 7 天，这段关系会先给你一个信号", "有 1 句话，TA一直没说出口", "3 天内，你们的距离会缩短一点"],
+    neutral: ["这件事，答案不在TA身上", "你要的答案，其实你已经知道了", "72 小时里，别急着先开口"],
+    shadow: ["先停下来：你现在看到的不是全部", "有 1 件事，你一直在骗自己", "这段关系里，卡住的不是TA"],
   },
   career: {
     light: ["这次，成面比你想的大", "14 天内会有一个明确回应", "你手上其实已经握着筹码"],
@@ -375,16 +363,16 @@ const HEADLINES = {
 const TOPIC_LINES = {
   love: {
     light: {
-      up: "你在意的这段关系，能量是通的。{kw}落在这里，说明他/她并不是无动于衷——只是他/她表达的方式跟你期待的对不上。别再用「没做就是不在乎」去推断，去看他/她做了什么，而不是没做什么。",
+      up: "你在意的这段关系，能量是通的。{kw}落在这里，说明TA并不是无动于衷——只是TA表达的方式跟你期待的对不上。别再用「没做就是不在乎」去推断，去看TA做了什么，而不是没做什么。",
       down: "这段关系其实没你想的那么糟，但你一直在用最坏的剧本预演它。{kw}逆位在这里，是在说你的不安全感跑到了事情前面。先把脑补停下来，问一句实际的，答案会比你想的简单。",
     },
     neutral: {
-      up: "这段关系现在卡在「谁先开口」上，而不是卡在感情本身。{kw}这张牌要你先看清楚：你到底在等他/她给一个答案，还是在等自己下决心。答案不在他/她身上。",
-      down: "你现在问错了问题。你在问「他/她爱不爱我」，但这张牌想让你问「我为什么需要他/她来证明」。{kw}逆位指向的是你自己的那个缺口，跟他/她是谁关系不大。",
+      up: "这段关系现在卡在「谁先开口」上，而不是卡在感情本身。{kw}这张牌要你先看清楚：你到底在等TA给一个答案，还是在等自己下决心。答案不在TA身上。",
+      down: "你现在问错了问题。你在问「TA爱不爱我」，但这张牌想让你问「我为什么需要TA来证明」。{kw}逆位指向的是你自己的那个缺口，跟TA是谁关系不大。",
     },
     shadow: {
-      up: "有件事你一直知道，但一直在绕开它。{kw}落在这里，不客气地说：这段关系里有不对等，而你已经在替他/她找借口了。看清它，不是要你现在就走，是要你别再自我说服。",
-      down: "你以为放不下的是他/她，其实放不下的是你已经投进去的时间。{kw}逆位在提醒你：沉没成本不是继续的理由。这段时间最难的部分，是承认自己看走了眼。",
+      up: "有件事你一直知道，但一直在绕开它。{kw}落在这里，不客气地说：这段关系里有不对等，而你已经在替TA找借口了。看清它，不是要你现在就走，是要你别再自我说服。",
+      down: "你以为放不下的是TA，其实放不下的是你已经投进去的时间。{kw}逆位在提醒你：沉没成本不是继续的理由。这段时间最难的部分，是承认自己看走了眼。",
     },
   },
   career: {
@@ -445,7 +433,7 @@ const TOPIC_LINES = {
   },
   friendship: {
     light: {
-      up: "这段关系的底色还是暖的。{kw}说明他/她并没有走远，只是这段时间各忙各的。主动约一次，或者发一句问候，温度就回来了。",
+      up: "这段关系的底色还是暖的。{kw}说明TA并没有走远，只是这段时间各忙各的。主动约一次，或者发一句问候，温度就回来了。",
       down: "你在用一次不愉快，定义整段关系。{kw}逆位在说：别让一个误会盖掉之前所有的好。说开，比冷战便宜。",
     },
     neutral: {
@@ -504,7 +492,7 @@ const TOPIC_LINES = {
 // 多做 / 少做 — two lines max. A reading people act on beats a reading
 // people nod at, so every reveal ends with something concrete.
 const DO_LINES = {
-  love: { light: "主动给一个具体的信号，别等他/她猜", neutral: "先把你的需求说清楚，再说感受", shadow: "先对自己诚实一次" },
+  love: { light: "主动给一个具体的信号，别等TA猜", neutral: "先把你的需求说清楚，再说感受", shadow: "先对自己诚实一次" },
   career: { light: "把东西交出去，别再改了", neutral: "列出你的底线，再谈下一步", shadow: "算一次真实成本（时间也算）" },
   money: { light: "记一笔进账，哪怕很小", neutral: "这个月只做计划内的支出", shadow: "列出三笔可以立刻停掉的花销" },
   study: { light: "把会的题再稳一遍，别贪新", neutral: "定一个小目标，今天只攻它", shadow: "换一个方法，别再硬扛旧的" },
@@ -515,7 +503,7 @@ const DO_LINES = {
   today: { light: "今天主动迈一步", neutral: "先做完手上那件", shadow: "今天拖一天，明天再决定" },
 };
 const AVOID_LINES = {
-  love: { light: "别用沉默测试他/她", neutral: "别在深夜发长消息", shadow: "别再替他/她找借口" },
+  love: { light: "别用沉默测试TA", neutral: "别在深夜发长消息", shadow: "别再替TA找借口" },
   career: { light: "别等「准备好」", neutral: "别同时押两条路", shadow: "别再用时间换希望" },
   money: { light: "别把钱放着不动", neutral: "别做大额决定", shadow: "别在晚上消费" },
   study: { light: "别临时换方法", neutral: "别跟别人比进度", shadow: "别让焦虑替你决定" },
@@ -544,9 +532,6 @@ function buildTopic(topicId, question) {
     emoji: "✍️",
     label: "自定义",
     group: null,
-    // A question someone bothered to type is often about somebody. Offer
-    // the toggle; the copy usually has no 他/她 in it and the call is a no-op.
-    person: true,
     custom: true,
     hook: q || "我自己的问题",
     prompt: "在心里默念你刚刚写下的那句话",
@@ -606,30 +591,25 @@ export function drawOracle(card, topicId, seed, question) {
 // Turn the picked card + topic into the reveal. Everything here is derived,
 // deterministic, and offline — no API, no model.
 //
-// `gender` ("m" | "f" | null) resolves the 他/她 placeholder written into
-// the person topics. It is applied here rather than at authoring time so
-// the copy lives once and the same reading reads correctly either way.
-//
 // No sign argument any more: the card the ring stopped on only ever fed the
 // seed and the element, and the element is gone with the zodiac. The one
 // concrete action now comes off the PICKED card's own tone, which is closer
 // to the answer anyway — "do this" should follow the card you turned, not
 // the one that happened to be facing front.
-export function revealCard(oracle, pickKey, gender) {
+export function revealCard(oracle, pickKey) {
   const pick = oracle.hand.find((h) => h.key === pickKey) || oracle.hand[0];
   const { card, reversed } = pick;
   const topicId = oracle.topic.id;
   const tone = card.tone;
-  const g = (s) => applyGender(s, gender);
 
   // Seed the "flavour" numbers off the exact pick so re-opening the same
   // reading reproduces them (a screenshot taken tomorrow still matches).
   const rng = makeRng(`${oracle.seed}_${pickKey}`);
   const hookPool = copyTable(HEADLINES, topicId)[tone];
-  const headline = g(hookPool[Math.floor(rng() * hookPool.length)]);
+  const headline = hookPool[Math.floor(rng() * hookPool.length)];
 
   const lines = copyTable(TOPIC_LINES, topicId)[tone];
-  const onTopic = g(fill(reversed ? lines.down : lines.up, card));
+  const onTopic = fill(reversed ? lines.down : lines.up, card);
 
   const luckyNum = 1 + Math.floor(rng() * 9);
   const luckyHour = [9, 11, 14, 16, 19, 21][Math.floor(rng() * 6)];
@@ -644,19 +624,17 @@ export function revealCard(oracle, pickKey, gender) {
     card,
     reversed,
     topic: oracle.topic,
-    // The question as asked — gender-resolved for presets, verbatim for
-    // custom. The reveal and the share card both read from here, so what
-    // was asked is never paraphrased back at the visitor.
-    question: g(oracle.topic.hook),
+    // The question as asked. The reveal and the share card both read from
+    // here, so what was asked is never paraphrased back at the visitor.
+    question: oracle.topic.hook,
     headline,
     core: reversed ? card.down : card.up,
     onTopic,
-    doLine: g(doTable[tone]),
-    avoidLine: g(avoidTable[tone]),
+    doLine: doTable[tone],
+    avoidLine: avoidTable[tone],
     action: pickAction(tone, rng),
     luckyNum,
     luckyHour,
     samePick,
-    gender: gender || null,
   };
 }

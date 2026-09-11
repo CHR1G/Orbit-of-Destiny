@@ -165,8 +165,7 @@ export default function HoloCard({
         alt={imgAlt}
         draggable={false}
         decoding="async"
-        className="holo-img"
-        style={reversed && !back ? { transform: "scale(1.06) rotate(180deg)" } : undefined}
+        className={`holo-img${reversed && !back ? " holo-img--rev" : ""}`}
       />
       <span className="holo-glare" aria-hidden="true" />
       <span className="holo-foil" aria-hidden="true" />

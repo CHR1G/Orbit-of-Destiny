@@ -622,16 +622,44 @@ body[data-tone] .element-serif {
   transform: rotateY(180deg);
 }
 .holo-img {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Bleed in pixels, not percent, and the box keeps the deck's OWN ratio.
+     Every plate is already the deck's exact 100:179 shape (all 79 files
+     are 400x716), so `object-fit` has nothing to crop and the only thing
+     that ever clipped the art was the old `transform: scale()`. That
+     scale was not there to crop: the plate is a composited, clipped,
+     rounded box, and at exactly 100% the rasterised edge can leave a
+     hairline of page showing through a corner. Half a device pixel of
+     bleed buries that seam — and a bleed is a CONSTANT. Expressed as a
+     percentage it was not: a 90px thumbnail got 0.2px of cover while a
+     full-screen plate got 2px of crop, and the deck's beaded silver
+     frame, drawn hard against all four edges, paid for the difference.
+
+     So: one pixel wider than the plate, height derived from the card's
+     own ratio (≈1.8px taller), centred. Overhang is ~0.5px a side
+     across and ~0.9px a side down — invisible, and because the box
+     ratio matches the file ratio exactly, `cover` is left with zero to
+     trim. `max-width: none` is load-bearing: Tailwind's preflight caps
+     `img` at 100% and silently ate the horizontal half of the bleed. */
+  width: calc(100% + 1px);
+  max-width: none;
+  height: auto;
+  aspect-ratio: 100 / 179;
+  transform: translate(-50%, -50%);
   object-fit: cover;
-  /* Slight overscale gives the tilt somewhere to travel — without it
-     the card's edges pull away from their own frame at the extremes.
-     1.02 (not the old 1.06) keeps the deck's silver border and the
-     bottom ornament from being clipped at rest. */
-  transform: scale(1.02);
   pointer-events: none;
   user-select: none;
+}
+/* 逆位 — turn the art over and nothing else. This used to be an inline
+   `scale(1.06) rotate(180deg)`, which was the deck's original rest-state
+   scale that nobody updated after the CSS came down to 1.02: an inverted
+   card was cropped 6% wide instead of 2%, i.e. three times as hard, and
+   that asymmetry is what got noticed. The rotation runs about the box
+   centre, so the centring translate above is unaffected. */
+.holo-img--rev {
+  transform: translate(-50%, -50%) rotate(180deg);
 }
 /* White bloom that follows the cursor. */
 .holo-glare {
@@ -1072,45 +1100,6 @@ body[data-tone] .element-serif {
   cursor: not-allowed;
 }
 
-/* ---- 他 / 她 toggle ----------------------------------------------- *
- * Segmented control, not a select: two taps, no dropdown, and the
- * unselected state is meaningful (the copy falls back to 对方).
- * ------------------------------------------------------------------- */
-.oracle-gender {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.oracle-gender-label {
-  font-family: var(--font-cn-sans);
-  font-size: 12px;
-  color: rgba(20, 24, 15, 0.42);
-}
-.oracle-gender-switch {
-  display: inline-flex;
-  gap: 3px;
-  padding: 3px;
-  border: 1px solid rgba(20, 24, 15, 0.14);
-  border-radius: 999px;
-  background: rgba(255, 253, 248, 0.5);
-}
-.oracle-gender-opt {
-  min-width: 54px;
-  padding: 6px 0;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  font-family: var(--font-cn-display);
-  font-size: 15px;
-  color: rgba(20, 24, 15, 0.5);
-  cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease;
-}
-.oracle-gender-opt:hover { color: rgba(20, 24, 15, 0.82); }
-.oracle-gender-opt.is-on {
-  background: rgba(20, 24, 15, 0.86);
-  color: #fffdf8;
-}
 /* Label used in the reveal copy column: a hairline that fades out on the
    right — cleaner than a full-width bordered plate under each block. */
 .oracle-label {
@@ -1281,6 +1270,247 @@ body[data-tone] .element-serif {
 }
 
 /* ------------------------------------------------------------------ *
+ * 卡面详情 — click a card, look at the card.
+ *
+ * This is what a click on the ring opens now: the plate blown up on the
+ * left, what it means on the right. 开始占卜 is a second, deliberate tap
+ * rather than a side effect of touching the wheel.
+ *
+ * Two columns from 860px; stacked and scrolled below it, because a
+ * portrait phone has no width to split and the plate must still be the
+ * first thing seen. The plate height is derived from the viewport and the
+ * 100:179 ratio falls out of it, the same derivation the reveal uses, so
+ * both surfaces show the card at the same shape and neither crops.
+ *
+ * No panel fill, and no glass rectangle behind the copy: the stage behind
+ * is already the enlarged, fogged plate, and a second rectangle on top of
+ * it would read as a dialog. The overlay is frameless by design — the
+ * copy is lifted off the fog by shadow, exactly like the reading steps.
+ * ------------------------------------------------------------------ */
+.cardd {
+  width: min(94vw, 900px);
+  margin: auto;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  text-shadow:
+    0 1px 0 rgba(255, 253, 248, 0.9),
+    0 0 14px rgba(255, 253, 248, 0.85),
+    0 0 34px rgba(244, 240, 230, 0.9);
+}
+.cardd-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.cardd-kicker {
+  font-family: var(--font-cn-sans);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(20, 24, 15, 0.42);
+}
+.cardd-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+}
+@media (min-width: 860px) {
+  .cardd-body {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 48px;
+    align-items: center;
+  }
+}
+.cardd-figure {
+  position: relative;
+  margin: 0;
+  justify-self: center;
+  aspect-ratio: 100 / 179;
+  /* Phone-sized by default: big enough to be the thing you look at, small
+     enough that the meaning below it is on screen too — this panel is
+     read top to bottom on a phone, so the plate cannot eat the fold. */
+  width: min(52vw, 214px);
+  perspective: 1200px;
+  animation: cardd-in 560ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+/* Capped by the viewport rather than pinned: on a short window the plate
+   gives way so the copy beside it keeps its line count, instead of the
+   two columns fighting over the same vertical space. */
+@media (min-width: 860px) {
+  .cardd-figure {
+    --cardd-h: clamp(260px, min(calc(100dvh - 220px), 64vh), 560px);
+    height: var(--cardd-h);
+    width: calc(var(--cardd-h) * 100 / 179);
+  }
+}
+.cardd-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: cardd-in 620ms 70ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.cardd-name {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.cardd-zh {
+  font-family: var(--font-cn-display);
+  font-size: clamp(30px, 4.4vw, 46px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: #14180f;
+}
+.cardd-en {
+  font-size: 12px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgba(20, 24, 15, 0.4);
+}
+.cardd-kw {
+  font-family: var(--font-cn-display);
+  font-size: clamp(16px, 2vw, 20px);
+  letter-spacing: 0.04em;
+  color: var(--element-accent);
+}
+.cardd-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cardd-tag {
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-family: var(--font-cn-sans);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: rgba(20, 24, 15, 0.55);
+}
+/* Both readings stay on screen — the toggle only decides which one is
+   lit, and which way up the plate is. Hiding the other half behind a tap
+   would make the panel a menu instead of a reference. */
+.cardd-mean {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cardd-mean-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 10px 12px;
+  border-left: 2px solid transparent;
+  border-radius: 3px;
+  opacity: 0.5;
+  transition:
+    opacity 0.28s ease,
+    background 0.28s ease,
+    border-color 0.28s ease;
+}
+.cardd-mean-row[data-on] {
+  opacity: 1;
+  border-left-color: var(--element-accent);
+  background: var(--element-tint);
+}
+.cardd-mean-tag {
+  font-family: var(--font-cn-display);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  color: #14180f;
+  /* The tag sits on the row's baseline grid, not its top edge, so it
+     lines up with the first line of the copy beside it. */
+  padding-top: 1px;
+}
+.cardd-mean-tag.is-rev {
+  color: rgba(168, 69, 42, 0.85);
+}
+.cardd-mean-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.75;
+  color: rgba(20, 24, 15, 0.72);
+}
+.cardd-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.cardd-flip {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid rgba(20, 24, 15, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.5);
+}
+.cardd-flip-opt {
+  min-width: 54px;
+  padding: 6px 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-family: var(--font-cn-display);
+  font-size: 14px;
+  color: rgba(20, 24, 15, 0.5);
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+.cardd-flip-opt:hover {
+  color: rgba(20, 24, 15, 0.82);
+}
+.cardd-flip-opt.is-on {
+  background: rgba(20, 24, 15, 0.86);
+  color: #fffdf8;
+}
+.cardd-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 20px;
+  border-radius: 999px;
+  font-family: var(--font-cn-sans);
+  font-size: 14px;
+  color: #14180f;
+  cursor: pointer;
+}
+.cardd-go svg {
+  transition: transform 0.22s ease;
+}
+.cardd-go:hover svg {
+  transform: translateX(3px);
+}
+@keyframes cardd-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cardd-figure,
+  .cardd-copy {
+    animation: none;
+  }
+  .cardd-go svg {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * 玩法菜单 — the five ways in, top right over the ring.
  *
  * Deliberately NOT a card index. The meta lockup already names the card
@@ -1426,4 +1656,154 @@ body[data-tone] .element-serif {
 }
 .play-row:hover .play-desc {
   opacity: 0.7;
+}
+
+/* ------------------------------------------------------------------ *
+ * Phone entry — the same five plays, collapsed
+ *
+ * The column above needs a side of the screen to sit on and a portrait
+ * phone has none. Below 640px it is replaced by one pill on the bottom
+ * edge that names the play that is currently loaded and opens a sheet
+ * carrying the same five rows, so the menu is reachable and the mode is
+ * still visible. Without it the breakpoint left a phone with no way to
+ * start a reading at all.
+ *
+ * The breakpoint is written here rather than as a `sm:` utility on the
+ * element because this file is unlayered: a `display` declared here
+ * outranks Tailwind's `utilities` layer whatever the specificity, so both
+ * halves of the swap have to be decided in one place. 640px is Tailwind's
+ * `sm` — exactly where `max-sm:hidden` stops hiding the column.
+ * ------------------------------------------------------------------ */
+.play-mobile { display: none; }
+
+@media (max-width: 639px) {
+  .play-mobile {
+    position: fixed;
+    left: 0;
+    right: 0;
+    /* Clear of the home indicator on a notched phone; env() is 0 when the
+       viewport is not cover-fit, which is the case here. */
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    z-index: 11;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0 16px;
+    /* The container itself must not swallow a drag meant for the ring —
+       only the two controls inside it opt back in. */
+    pointer-events: none;
+    font-size: 15px;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+    color: #0a0a0a;
+  }
+
+  /* Fixed, not absolute: it has to cover the ring, not just the sheet's own
+     box. Pale rather than black — the whole page is glass on white, and a
+     dark scrim reads as a different product on top of it. */
+  .play-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: rgba(244, 246, 250, 0.55);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    pointer-events: auto;
+  }
+
+  .play-sheet {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.42em;
+    margin: 0;
+    padding: 0.85em 0.9em 0.95em;
+    list-style: none;
+    max-height: 62vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 1.1em;
+    background: linear-gradient(180deg, #ffffff 0%, #f2f4f8 58%, #dfe4ec 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(9, 12, 20, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      0 24px 48px -18px rgba(9, 12, 20, 0.5);
+    pointer-events: auto;
+  }
+
+  .play-sheet-title {
+    padding-bottom: 0.2em;
+    font-size: 0.72em;
+    letter-spacing: 0.16em;
+    color: rgba(10, 10, 10, 0.4);
+  }
+
+  /* Touch has no hover, and the rows lean on it: at rest they sit at 0.6
+     opacity and only come up under a pointer. On a phone that reads as
+     five greyed-out rows, so the sheet holds them near full instead. */
+  .play-sheet .play-row { opacity: 0.94; }
+  .play-sheet .play-row:active {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+  .play-sheet .play-desc { opacity: 0.62; }
+
+  /* Same hardware as a row, turned into a pill. Sized in em off the
+     container, so it takes the sheet's font-size with it. */
+  .play-pill {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.66em 1.05em;
+    border: 0;
+    border-radius: 999px;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    background: linear-gradient(180deg, #ffffff 0%, #eef1f6 46%, #d3d9e3 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(9, 12, 20, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      inset 0 -1px 0 rgba(9, 12, 20, 0.06),
+      0 1px 1px rgba(9, 12, 20, 0.07),
+      0 12px 24px -10px rgba(9, 12, 20, 0.45);
+    transition: transform 0.18s ease, box-shadow 0.24s ease;
+    pointer-events: auto;
+  }
+  .play-pill:active { transform: translateY(1px); }
+  .play-pill.is-open {
+    background: linear-gradient(180deg, #ffffff 0%, #f6f8fc 54%, #e3e7ef 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(47, 107, 255, 0.34),
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      inset 0 0 20px -7px rgba(47, 107, 255, 0.6),
+      0 1px 1px rgba(9, 12, 20, 0.07),
+      0 12px 24px -12px rgba(9, 12, 20, 0.42);
+  }
+  .play-pill-name {
+    font-size: 0.95em;
+    white-space: nowrap;
+  }
+  /* A drawn caret, not a glyph: it has to survive whatever face the label
+     resolves to. */
+  .play-pill-caret {
+    width: 0;
+    height: 0;
+    border-left: 0.32em solid transparent;
+    border-right: 0.32em solid transparent;
+    border-top: 0.4em solid rgba(10, 10, 10, 0.5);
+    transition: transform 0.18s ease;
+  }
+  .play-pill.is-open .play-pill-caret { transform: rotate(180deg); }
+}
+
+@media (max-width: 639px) and (prefers-reduced-motion: reduce) {
+  .play-pill,
+  .play-pill-caret,
+  .play-sheet .play-row { transition: none; }
 }

@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { TOPICS, TOPIC_GROUPS, CUSTOM_TOPIC_ID, applyGender, drawOracle, revealCard, TAROT_BACK } from "./ring/tarot";
+import { TOPICS, TOPIC_GROUPS, CUSTOM_TOPIC_ID, drawOracle, revealCard, TAROT_BACK } from "./ring/tarot";
 import { BASIC_PLAY_ID } from "./ring/spreads";
 import SpreadFlow from "./SpreadFlow";
 import HoloCard from "./HoloCard";
@@ -212,15 +212,10 @@ export default function OracleFlow({
   const [extraSeed, setExtraSeed] = useState(0);
   const [sharing, setSharing] = useState(false);
   const [saved, setSaved] = useState(false);
-  // Which person the reading is about — "m" | "f" | null. null is a real
-  // state, not an uninitialised one: the copy resolves 他/她 to 对方 and
-  // still reads fine, so the toggle is an upgrade rather than a gate.
-  const [gender, setGender] = useState(null);
   // Free-text question. Trimmed on use; the 40-char cap lives in tarot.js.
   const [customQuestion, setCustomQuestion] = useState("");
-  // Whether the breathing ring has finished. Kept separate from `step`
-  // because a person-topic should not advance until the visitor has had a
-  // chance to pick 他/她 — the ring ending is not by itself the trigger.
+  // The breathing ring is the only gate now. It used to wait on a gender
+  // choice as well, but the copy says TA and the answer changed nothing.
   const [breatheReady, setBreatheReady] = useState(false);
   const revealRef = useRef(null);
   // Screen rect of the face-down card that was just clicked. When the reveal
@@ -249,21 +244,19 @@ export default function OracleFlow({
   }, [card, topicId, baseSeed, extraSeed, customQuestion]);
 
   const reveal = useMemo(
-    () => (oracle && pickKey ? revealCard(oracle, pickKey, gender) : null),
-    [oracle, pickKey, gender],
+    () => (oracle && pickKey ? revealCard(oracle, pickKey) : null),
+    [oracle, pickKey],
   );
 
-  // Advance out of the breathing screen once the ring has finished. For a
-  // person-topic the ring finishing is not enough on its own — wait for the
-  // 他/她 choice too, otherwise the visitor lands on the pick still reading
-  // "他/她" and has already lost the quiet this screen was for. "跳过"
-  // bypasses the wait by setting the step directly.
+  // Advance out of the breathing screen once the ring has finished — the
+  // three seconds of quiet are the whole point of the screen, so the ring
+  // ending is the trigger. "跳过" bypasses the wait by setting the step
+  // directly.
   useEffect(() => {
     if (step !== "breathe" || !breatheReady) return;
-    if (oracle?.topic?.person && !gender) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- gated transition, not an init
     setStep("pick");
-  }, [step, breatheReady, gender, oracle]);
+  }, [step, breatheReady, oracle]);
 
   // Reset the flow whenever the underlying card/day changes underneath us.
   useEffect(() => {
@@ -576,45 +569,12 @@ export default function OracleFlow({
         </div>
 
         <div>
-          <p className="cn-serif text-xl text-[#14180f]">
-            {applyGender(topic.hook, gender)}
-          </p>
+          <p className="cn-serif text-xl text-[#14180f]">{topic.hook}</p>
           <p className="cn-sans mt-2 text-sm text-black/50">{topic.prompt}</p>
           <p className="cn-sans mt-1 text-xs text-black/35">
             深呼吸三次，不要刻意去想，也不要反复改
           </p>
         </div>
-
-        {/* Only for topics whose answer points at a specific somebody.
-            Tapping the active choice clears it — 对方 is a legitimate
-            answer for anyone who would rather not pick. */}
-        {topic.person && (
-          <div className="oracle-gender">
-            <span className="oracle-gender-label">你问的是</span>
-            <div
-              className="oracle-gender-switch"
-              role="group"
-              aria-label="选择对方性别"
-            >
-              {[
-                { k: "m", l: "他" },
-                { k: "f", l: "她" },
-              ].map((o) => (
-                <button
-                  key={o.k}
-                  type="button"
-                  aria-pressed={gender === o.k}
-                  onClick={() => setGender(gender === o.k ? null : o.k)}
-                  className={`oracle-gender-opt${
-                    gender === o.k ? " is-on" : ""
-                  }`}
-                >
-                  {o.l}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         <button
           onClick={() => setStep("pick")}
@@ -641,7 +601,7 @@ export default function OracleFlow({
           <header className="mb-3 flex items-start justify-between gap-4">
           <div>
             <div className="cn-serif text-2xl font-semibold leading-tight text-[#14180f] sm:text-3xl">
-              {topic.emoji} {applyGender(topic.hook, gender)}
+              {topic.emoji} {topic.hook}
             </div>
             <p className="cn-sans mt-2 text-base text-black/55">
               {topic.prompt}，然后凭第一直觉选一张
