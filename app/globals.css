@@ -1688,10 +1688,13 @@ body[data-tone] .element-serif {
  *   the transition is on opacity + filter only, so the colour fades in
  *   without the plate itself appearing to move.
  *
- * The hue is the doll's warm 米白 family rather than the reference's 210deg
- * blue: a blue glow on a #fafafa page with a pink doll would be a second,
- * competing accent. This is the same hue as the plate, lifted until it reads.
- */
+ * The hue is now a light blue. It was the doll's warm 米白 family, on the
+ * reasoning that a blue accent on a #fafafa page with a pink doll would be a
+ * second, competing accent. That reasoning was overruled by the visitor, and
+ * the blue is kept light and low-saturation on purpose: a saturated blue would
+ * re-introduce exactly the competition the warm version was avoiding, whereas
+ * a pale one reads as cool light on a neutral plate and stays subordinate to
+ * the ring's own colour. */
 .play-row::after {
   content: "";
   position: absolute;
@@ -1701,10 +1704,10 @@ body[data-tone] .element-serif {
   z-index: 0;
   background: linear-gradient(
     0deg,
-    rgba(255, 248, 238, 0.95) 0%,
-    rgba(252, 240, 226, 0.75) 30%,
-    rgba(248, 232, 214, 0.35) 62%,
-    rgba(248, 232, 214, 0) 100%
+    rgba(186, 214, 240, 0.95) 0%,
+    rgba(196, 220, 243, 0.72) 30%,
+    rgba(208, 227, 245, 0.32) 62%,
+    rgba(208, 227, 245, 0) 100%
   );
   -webkit-mask-image: linear-gradient(0deg, #fff, transparent);
   mask-image: linear-gradient(0deg, #fff, transparent);
@@ -1723,19 +1726,19 @@ body[data-tone] .element-serif {
 .play-row:focus-visible {
   opacity: 1;
   transform: translateY(-1px);
-  border-color: rgba(232, 208, 182, 0.85);
+  border-color: rgba(168, 198, 228, 0.9);
   background: linear-gradient(
     180deg,
-    rgba(255, 251, 245, 0.99) 0%,
-    rgba(253, 246, 236, 0.94) 40%,
-    rgba(250, 240, 228, 0.9) 100%
+    rgba(250, 252, 255, 0.99) 0%,
+    rgba(245, 249, 254, 0.94) 40%,
+    rgba(238, 245, 253, 0.9) 100%
   );
   box-shadow:
     inset 0 1.5px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 0 rgba(120, 100, 86, 0.06),
-    inset 0 0 0 1px rgba(255, 250, 244, 0.6),
-    0 2px 3px rgba(120, 100, 86, 0.06),
-    0 12px 26px -14px rgba(120, 100, 86, 0.32);
+    inset 0 -1px 0 rgba(96, 118, 142, 0.06),
+    inset 0 0 0 1px rgba(246, 250, 255, 0.6),
+    0 2px 3px rgba(96, 118, 142, 0.06),
+    0 12px 26px -14px rgba(96, 118, 142, 0.32);
 }
 .play-row:hover::after,
 .play-row:focus-visible::after {
@@ -1744,7 +1747,7 @@ body[data-tone] .element-serif {
 .play-row:hover::before,
 .play-row:focus-visible::before {
   box-shadow:
-    inset 0.5px 0 1.5px rgba(255, 206, 160, 0.4),
+    inset 0.5px 0 1.5px rgba(170, 206, 240, 0.45),
     inset -0.5px 0 1.5px rgba(200, 218, 240, 0.34),
     inset 0 0.5px 1px rgba(255, 255, 255, 0.5);
 }
@@ -1792,22 +1795,22 @@ body[data-tone] .element-serif {
   color: #4a4642;
 }
 /* Hover beats selection, so the cursor always confirms what it is over: a row
-   that is both selected and hovered shows the warm light, not the grey well. */
+   that is both selected and hovered shows the cool light, not the grey well. */
 .play-row.is-on:hover,
 .play-row.is-on:focus-visible {
-  border-color: rgba(232, 208, 182, 0.85);
+  border-color: rgba(160, 196, 232, 0.9);
   background: linear-gradient(
     180deg,
-    rgba(255, 251, 245, 0.99) 0%,
-    rgba(253, 246, 236, 0.94) 40%,
-    rgba(250, 240, 228, 0.9) 100%
+    rgba(250, 252, 255, 0.99) 0%,
+    rgba(242, 247, 253, 0.94) 40%,
+    rgba(234, 242, 252, 0.9) 100%
   );
   box-shadow:
     inset 0 1.5px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 0 rgba(120, 100, 86, 0.06),
-    inset 0 0 0 1px rgba(255, 250, 244, 0.6),
-    0 2px 3px rgba(120, 100, 86, 0.06),
-    0 12px 26px -14px rgba(120, 100, 86, 0.32);
+    inset 0 -1px 0 rgba(96, 118, 142, 0.06),
+    inset 0 0 0 1px rgba(244, 249, 255, 0.6),
+    0 2px 3px rgba(96, 118, 142, 0.06),
+    0 12px 26px -14px rgba(96, 118, 142, 0.32);
 }
 .play-row.is-on:hover::after,
 .play-row.is-on:focus-visible::after {
