@@ -2,71 +2,127 @@
 
 import { useEffect, useRef } from "react";
 
-/* The doll's face, drawn as flat SVG so it can sit *behind* the WebGL ring
- * as a background layer. The renderer is created with `alpha: true`, so the
- * canvas is genuinely transparent and the ring floats over this rather than
- * hiding it — no compositing trick needed.
+/* The doll, as photographic layers rather than as drawn SVG.
  *
- * Art direction comes off the deck itself: every plate in public/tarot is
- * the same pale-blue-haired doll, so the face here borrows its palette
- * (powder-blue hair, pink skin, matte vinyl — soft shading, no outlines)
- * instead of inventing a second mascot that would fight the cards.
+ * The first pass built this face out of gradients and paths, and it read as an
+ * emoji: flat fills cannot carry matte-vinyl subsurface scattering, the
+ * blurred mass of the hair, or the specular lobe on an eyeball. So the figure
+ * is now the real render, supplied as five exactly-aligned 1293x1080 RGBA
+ * plates — body, two lids, two eyeballs — and this component's only job is to
+ * stack them and let the pupils follow the cursor.
  *
- * Everything animated is transform-only, written from a single rAF loop:
- * two pupil groups and two lid groups. Nothing re-renders React. */
+ * ---------------------------------------------------------------------------
+ * THE LAYER ORDER, which is the least obvious thing in this file.
+ *
+ * Bottom to top:  眼球  ->  身体  ->  眼皮
+ *
+ * The eyeballs are *under* the body, not over it. That is not a mistake and
+ * not a stylistic choice: the body plate has a real transparent hole punched
+ * through it where each eye sits (sampled alpha 0 at both eye centres), so the
+ * ball shows through that hole and is framed by the socket rim the artist
+ * painted. Stacking the ball on top instead would paint over that rim and lose
+ * the recessed look entirely — the eye would read as a sticker on a face
+ * rather than as a ball set into one.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY THERE IS NO BLINK. This was tried, tuned twice, and removed on purpose.
+ *
+ * The construction was: the lid plate slides down to cover the ball while the
+ * ball withdraws upward, so the two part along one line. It cannot work with
+ * these plates, and the reason is structural rather than a matter of tuning.
+ *
+ * Measured, in plate pixels:
+ *
+ *   左眼皮  y[630..778]  h=149    左眼球 y[688..796]
+ *   右眼皮  y[406..603]  h=198    右眼球 y[449..558]
+ *
+ * To close the right eye its lid must travel from rest down until its bottom
+ * edge passes the ball's bottom edge — covering y[361..558] on the way, i.e.
+ * 198px of lid sliding down the face. But the right lid plate *carries the
+ * eyebrow*, so the travel drags the brow down the forehead. The left lid is
+ * the same failure in miniature: its lash edge is painted on the plate, so
+ * sliding it detaches the lash from the lid crease.
+ *
+ * A flat plate cannot both sit correctly open and travel to correctly closed
+ * when it has fixed facial features baked in — an anatomical lid would pivot
+ * about the crease and foreshorten, which a translate-only plate cannot do.
+ * Closing properly needs either plates cut so the moving part carries no
+ * landmark, or a shape-morph between two authored states. Until one of those
+ * exists, no blink is better than a blink that dislocates the brow.
+ *
+ * ---------------------------------------------------------------------------
+ * Why each plate is a full canvas
+ *
+ * Every plate is a 1293x1080 cutout, not a tight crop of its own subject —
+ * the subject simply lives in one small region of the canvas. They were
+ * exported that way on purpose: co-registration *is* the alignment data. So
+ * each <image> is drawn at x=0 y=0 width=1293 height=1080 and the artwork
+ * lands exactly where it belongs, with no per-layer geometry at all.
+ *
+ * Getting this wrong is silent and looks like a rendering bug: placing a plate
+ * into a hand-measured sub-rect (say a 113x110 box around an eyeball) rescales
+ * all 1293x1080 px of artwork into that box, so the iris smears across the
+ * whole eye and the composite reads as a white blob. If the eyes ever look
+ * wrong again, check this first.
+ *
+ * ---------------------------------------------------------------------------
+ * The only thing that animates is the pupil, and only by a few pixels. The
+ * loop writes the SVG `transform` *attribute* (not a CSS property) once per
+ * frame per ball; React never re-renders. */
 
-/* Eye centres as a fraction of the viewBox — each eye derives its own
- * direction vector, since two eyes looking at one point are not parallel
- * and sharing a single offset reads immediately as wrong. */
+const PLATES = {
+  body: "/doll/body.png",
+  lidLeft: "/doll/lid-left.png",
+  lidRight: "/doll/lid-right.png",
+  eyeLeft: "/doll/eye-left.png",
+  eyeRight: "/doll/eye-right.png",
+};
+
+/* Native size of the plates, and the canvas every layer is registered to. */
+const ART_W = 1293;
+const ART_H = 1080;
+
+/* Eye centres in plate pixels, taken off the eyeball bounding boxes rather
+ * than eyeballed: the figure is reclining at three-quarters, so the two eyes
+ * are 239px apart vertically and 274px horizontally. A symmetric guess reads
+ * as wrong immediately. */
 const EYES = [
-  { nx: 0.34, ny: 0.5833 },
-  { nx: 0.66, ny: 0.5833 },
+  { x: 573.5, y: 742 }, // 左, the lower eye
+  { x: 847, y: 503.5 }, // 右, the upper eye
 ];
 
-const VB_W = 1000;
+/* How far a pupil may slide, in plate pixels. The ball is ~113x110 and the
+ * iris nearly fills it, so this is deliberately small: enough to read as a
+ * glance, not so much that the ball leaves the socket painted for it. */
+const MAX_TRAVEL = 10;
 
-/* How far a pupil may slide inside its socket, in viewBox units. The iris
- * r=46 sits in a socket of rx=80 / ry=64, so the real headroom is 34 across
- * and 18 down; 24 leaves a ring of sclera at the limit instead of letting
- * the iris press against the rim. */
-const MAX_TRAVEL = 24;
-
-/* Blink envelope, ms. The close is the fast part — an eyelid that descends
- * at the same speed it rises reads as a slow mechanical shutter. */
-const BLINK_CLOSE = 90;
-const BLINK_HOLD = 40;
-const BLINK_OPEN = 130;
-const BLINK_TOTAL = BLINK_CLOSE + BLINK_HOLD + BLINK_OPEN;
-
-/* Where the lid parks when open, as a % of its own height. Slightly more
- * than 100 so no sliver of skin is left hanging over the eye. */
-const LID_OPEN = -108;
-
-/* Idle: after this long without a pointer, the face looks around on its
- * own. Without it a touch device shows a frozen doll, which is exactly the
- * uncanny look this is meant to avoid. */
+/* Idle: after this long without a pointer the face looks around on its own.
+ * Without it a touch device shows a frozen doll, which is the exact uncanny
+ * look this is meant to avoid. */
 const IDLE_AFTER = 4000;
 
 export default function DollFace() {
-  const svgRef = useRef(null);
-  const pupilsRef = useRef([]);
-  const lidsRef = useRef([]);
+  const stageRef = useRef(null);
+  const ballsRef = useRef([]);
 
   useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return;
+    const stage = stageRef.current;
+    if (!stage) return;
     // Respect the OS setting: hold the face still, eyes centred.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     let raf = 0;
-    let targetX = window.innerWidth * 0.3;
+    /* Start looking at the camera rather than at an arbitrary screen point.
+     * `innerWidth * 0.3` was the first guess and it biases both pupils to the
+     * far left of their sockets on load, which reads as a squint until the
+     * visitor happens to move the mouse. Aiming at the screen centre puts the
+     * gaze near neutral. */
+    let targetX = window.innerWidth * 0.5;
     let targetY = window.innerHeight * 0.45;
     let curX = targetX;
     let curY = targetY;
     let lastPointer = -1e9;
     let nextWander = 0;
-    let blinkStart = 0;
-    let nextBlink = performance.now() + 2200 + Math.random() * 3600;
 
     const onMove = (e) => {
       targetX = e.clientX;
@@ -74,9 +130,15 @@ export default function DollFace() {
       lastPointer = performance.now();
     };
 
+    /* Writes the SVG transform *attribute* rather than a CSS property: it
+     * needs no `transform-box` gymnastics to land in plate units. */
+    const place = (node, x, y) => {
+      if (node) node.setAttribute("transform", `translate(${x.toFixed(2)} ${y.toFixed(2)})`);
+    };
+
     const tick = (now) => {
       raf = requestAnimationFrame(tick);
-      const rect = svg.getBoundingClientRect();
+      const rect = stage.getBoundingClientRect();
       if (!rect.width) return;
 
       if (now - lastPointer > IDLE_AFTER && now > nextWander) {
@@ -90,36 +152,20 @@ export default function DollFace() {
       curX += (targetX - curX) * 0.14;
       curY += (targetY - curY) * 0.14;
 
-      // Screen px -> viewBox units, so the limit is the same on any screen.
-      const k = rect.width / VB_W;
+      /* Screen px -> plate px, so the limit is the same on any screen. The
+       * transform attribute is in viewBox units, hence the divide. */
+      const k = rect.width / ART_W;
+
       for (let i = 0; i < EYES.length; i += 1) {
-        const node = pupilsRef.current[i];
-        if (!node) continue;
-        const ex = rect.left + rect.width * EYES[i].nx;
-        const ey = rect.top + rect.height * EYES[i].ny;
+        const ex = rect.left + (EYES[i].x / ART_W) * rect.width;
+        const ey = rect.top + (EYES[i].y / ART_H) * rect.height;
         const dx = curX - ex;
         const dy = curY - ey;
         const d = Math.hypot(dx, dy) || 1;
-        // Clamp first, then normalise — the other order lets a distant
-        // cursor fling the pupil straight out of the socket.
+        // Clamp first, then normalise — the other order lets a distant cursor
+        // fling the pupil straight out of the socket.
         const mag = Math.min(d / k, MAX_TRAVEL);
-        node.style.transform = `translate(${(dx / d) * mag}px, ${(dy / d) * mag}px)`;
-      }
-
-      let lid = LID_OPEN;
-      if (!blinkStart && now > nextBlink) blinkStart = now;
-      if (blinkStart) {
-        const t = now - blinkStart;
-        if (t < BLINK_CLOSE) lid = LID_OPEN * (1 - t / BLINK_CLOSE);
-        else if (t < BLINK_CLOSE + BLINK_HOLD) lid = 0;
-        else if (t < BLINK_TOTAL) lid = LID_OPEN * ((t - BLINK_CLOSE - BLINK_HOLD) / BLINK_OPEN);
-        else {
-          blinkStart = 0;
-          nextBlink = now + 2400 + Math.random() * 4200;
-        }
-      }
-      for (const node of lidsRef.current) {
-        if (node) node.style.transform = `translateY(${lid}%)`;
+        place(ballsRef.current[i], (dx / d) * mag, (dy / d) * mag);
       }
     };
 
@@ -134,169 +180,57 @@ export default function DollFace() {
 
   return (
     <div className="doll" aria-hidden="true">
-      <svg
-        ref={svgRef}
-        className="doll-svg"
-        viewBox="0 0 1000 1200"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <defs>
-          {/* Matte vinyl: light falls from the upper left and falls off
-              towards the jaw. Flat fills were what made the first pass read
-              as an emoji rather than a figurine. */}
-          <radialGradient id="doll-skin" cx="36%" cy="26%" r="82%">
-            <stop offset="0%" stopColor="#fdeae4" />
-            <stop offset="55%" stopColor="#f9dcd5" />
-            <stop offset="100%" stopColor="#eec0b8" />
-          </radialGradient>
-          <linearGradient id="doll-hair" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#cbe0f1" />
-            <stop offset="52%" stopColor="#b3cce5" />
-            <stop offset="100%" stopColor="#9cb8d5" />
-          </linearGradient>
-          <linearGradient id="doll-hair-back" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#aac6e0" />
-            <stop offset="100%" stopColor="#8caac9" />
-          </linearGradient>
+      <div ref={stageRef} className="doll-stage">
+        <svg className="doll-svg" viewBox={`0 0 ${ART_W} ${ART_H}`}>
+          {/* 眼球 — BOTTOM of the stack, deliberately. The body plate has a
+              transparent hole at each eye, so the ball is seen *through* the
+              figure and framed by the painted socket rim. Drawing it above the
+              body would cover that rim and flatten the eye into a sticker.
+              These two are the only moving layers. */}
+          {[PLATES.eyeLeft, PLATES.eyeRight].map((href, i) => (
+            <image
+              key={href}
+              ref={(el) => {
+                ballsRef.current[i] = el;
+              }}
+              href={href}
+              x="0"
+              y="0"
+              width={ART_W}
+              height={ART_H}
+              preserveAspectRatio="none"
+            />
+          ))}
 
-          <clipPath id="doll-eye-l">
-            <ellipse cx="340" cy="700" rx="80" ry="64" />
-          </clipPath>
-          <clipPath id="doll-eye-r">
-            <ellipse cx="660" cy="700" rx="80" ry="64" />
-          </clipPath>
-          {/* The lid is a full-height block that slides down over the eye.
-              Clipping it to the socket box is what keeps it invisible while
-              parked — unclipped it would ride up onto the fringe. */}
-          <clipPath id="doll-lid-l">
-            <rect x="240" y="610" width="200" height="180" />
-          </clipPath>
-          <clipPath id="doll-lid-r">
-            <rect x="560" y="610" width="200" height="180" />
-          </clipPath>
-        </defs>
-
-        {/* Hair behind the head — the outer silhouette the fringe sits on */}
-        <ellipse cx="500" cy="620" rx="420" ry="470" fill="url(#doll-hair-back)" />
-        <path
-          d="M104 620 C86 790 94 930 70 1090 L206 1090 C192 930 198 790 212 646 C184 668 142 664 104 620 Z"
-          fill="url(#doll-hair-back)"
-        />
-        <path
-          d="M896 620 C914 790 906 930 930 1090 L794 1090 C808 930 802 790 788 646 C816 668 858 664 896 620 Z"
-          fill="url(#doll-hair-back)"
-        />
-
-        <ellipse cx="500" cy="650" rx="390" ry="440" fill="url(#doll-skin)" />
-
-        {/* Cheek sheen + blush */}
-        <ellipse cx="286" cy="700" rx="120" ry="96" fill="#ffffff" opacity="0.16" />
-        <ellipse cx="714" cy="700" rx="120" ry="96" fill="#ffffff" opacity="0.16" />
-        <ellipse cx="252" cy="818" rx="94" ry="50" fill="#f3aea6" opacity="0.42" />
-        <ellipse cx="748" cy="818" rx="94" ry="50" fill="#f3aea6" opacity="0.42" />
-
-        <ellipse cx="500" cy="840" rx="19" ry="12" fill="#e9b0a8" opacity="0.8" />
-        <path
-          d="M466 926 Q500 950 534 926"
-          fill="none"
-          stroke="#d68f89"
-          strokeWidth="6.5"
-          strokeLinecap="round"
-        />
-
-        {/* Left eye */}
-        <ellipse cx="340" cy="700" rx="80" ry="64" fill="#f4f6f9" />
-        <g clipPath="url(#doll-eye-l)">
-          <g
-            ref={(el) => {
-              pupilsRef.current[0] = el;
-            }}
-            className="doll-pupil"
-          >
-            <circle cx="340" cy="700" r="46" fill="#93a3b5" />
-            <circle cx="340" cy="700" r="25" fill="#485465" />
-            <circle cx="328" cy="686" r="14" fill="#ffffff" opacity="0.95" />
-          </g>
-        </g>
-        <path d="M256 626 L424 626 L424 660 Q340 700 256 660 Z" fill="#f9dcd5" />
-        <path
-          d="M256 660 Q340 700 424 660"
-          fill="none"
-          stroke="#6c7a8b"
-          strokeWidth="3.6"
-          strokeLinecap="round"
-        />
-        <path d="M258 658 L234 638" stroke="#6c7a8b" strokeWidth="3.6" strokeLinecap="round" />
-        <path d="M262 670 L238 663" stroke="#6c7a8b" strokeWidth="3" strokeLinecap="round" />
-
-        {/* Right eye — same construction, mirrored */}
-        <ellipse cx="660" cy="700" rx="80" ry="64" fill="#f4f6f9" />
-        <g clipPath="url(#doll-eye-r)">
-          <g
-            ref={(el) => {
-              pupilsRef.current[1] = el;
-            }}
-            className="doll-pupil"
-          >
-            <circle cx="660" cy="700" r="46" fill="#93a3b5" />
-            <circle cx="660" cy="700" r="25" fill="#485465" />
-            <circle cx="648" cy="686" r="14" fill="#ffffff" opacity="0.95" />
-          </g>
-        </g>
-        <path d="M576 626 L744 626 L744 660 Q660 700 576 660 Z" fill="#f9dcd5" />
-        <path
-          d="M576 660 Q660 700 744 660"
-          fill="none"
-          stroke="#6c7a8b"
-          strokeWidth="3.6"
-          strokeLinecap="round"
-        />
-        <path d="M742 658 L766 638" stroke="#6c7a8b" strokeWidth="3.6" strokeLinecap="round" />
-        <path d="M738 670 L762 663" stroke="#6c7a8b" strokeWidth="3" strokeLinecap="round" />
-
-        {/* Blink layers, clipped to the socket boxes */}
-        <g clipPath="url(#doll-lid-l)">
-          <rect
-            ref={(el) => {
-              lidsRef.current[0] = el;
-            }}
-            className="doll-lid"
-            x="240"
-            y="610"
-            width="200"
-            height="180"
-            rx="62"
-            fill="#f9dcd5"
+          {/* 身体 — the figure, with the eyes open as painted and the sockets
+              punched through. It already carries the lower lashes. */}
+          <image
+            href={PLATES.body}
+            x="0"
+            y="0"
+            width={ART_W}
+            height={ART_H}
+            preserveAspectRatio="none"
           />
-        </g>
-        <g clipPath="url(#doll-lid-r)">
-          <rect
-            ref={(el) => {
-              lidsRef.current[1] = el;
-            }}
-            className="doll-lid"
-            x="560"
-            y="610"
-            width="200"
-            height="180"
-            rx="62"
-            fill="#f9dcd5"
-          />
-        </g>
 
-        {/* Fringe last, so it overlaps the brow. The strand lines give the
-            mass a few partings — without them it reads as a swim cap. */}
-        <path
-          d="M96 620 C96 300 280 150 500 150 C720 150 904 300 904 620 C872 560 842 512 806 546 C770 580 742 516 704 540 C666 564 642 500 604 526 C566 552 544 488 506 516 C468 544 448 484 410 510 C372 536 348 490 310 518 C272 546 240 556 200 586 C160 616 130 586 96 620 Z"
-          fill="url(#doll-hair)"
-        />
-        <path d="M270 200 C232 296 214 420 226 528" fill="none" stroke="#d7e7f5" strokeWidth="10" strokeLinecap="round" opacity="0.5" />
-        <path d="M430 176 C400 290 392 424 408 520" fill="none" stroke="#d7e7f5" strokeWidth="9" strokeLinecap="round" opacity="0.42" />
-        <path d="M596 178 C628 292 636 426 620 522" fill="none" stroke="#d7e7f5" strokeWidth="9" strokeLinecap="round" opacity="0.42" />
-        <path d="M756 214 C792 306 806 428 792 534" fill="none" stroke="#d7e7f5" strokeWidth="10" strokeLinecap="round" opacity="0.5" />
-        <path d="M96 620 C150 566 196 592 232 566" fill="none" stroke="#9cb8d5" strokeWidth="3" opacity="0.35" />
-        <path d="M904 620 C850 566 804 592 768 566" fill="none" stroke="#9cb8d5" strokeWidth="3" opacity="0.35" />
-      </svg>
+          {/* 眼皮 — TOP of the stack, and static. See the note on the removed
+              blink at the head of this file: these plates have the brow and
+              the lash line baked in, so sliding them dislocates the face. They
+              sit at the register the artist drew, which is the correct open
+              eye, and nothing moves them. */}
+          {[PLATES.lidLeft, PLATES.lidRight].map((href) => (
+            <image
+              key={href}
+              href={href}
+              x="0"
+              y="0"
+              width={ART_W}
+              height={ART_H}
+              preserveAspectRatio="none"
+            />
+          ))}
+        </svg>
+      </div>
     </div>
   );
 }
