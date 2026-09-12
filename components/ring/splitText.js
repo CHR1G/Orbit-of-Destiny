@@ -12,6 +12,9 @@ import { textVertexShader, textFragmentShader } from "../shaders/textShaders";
 export function createSplitText(group, params) {
   let chars = [];
   let fades = [];
+  // The silver sweep's own uniform list, exposed like chars/fades so the
+  // render loop can advance it without holding a reference to each material.
+  let sweeps = [];
 
   const dispose = () => {
     for (const child of [...group.children]) {
@@ -22,6 +25,7 @@ export function createSplitText(group, params) {
     }
     chars = [];
     fades = [];
+    sweeps = [];
   };
 
   const build = () => {
@@ -46,6 +50,11 @@ export function createSplitText(group, params) {
     const pad = size * 0.25;
     const cellH = size * 1.3 + pad * 2;
 
+    // Run width in the same units the sweep travels in. Every glyph is placed
+    // on this one timeline so the band crosses the whole heading as a single
+    // reflection instead of restarting per letter.
+    const runW = totalW || 1;
+
     let x = -totalW / 2;
 
     glyphs.forEach((ch, i) => {
@@ -69,6 +78,15 @@ export function createSplitText(group, params) {
         tex.magFilter = THREE.LinearFilter;
         tex.generateMipmaps = false;
 
+        /* The glyph's own span on the run timeline. The quad is wider than the
+         * advance by `pad` on each side, so the map from quad-uv to run position
+         * has to account for that padding — otherwise each letter's slice of the
+         * sweep is offset by a fraction of a pad and the band visibly steps at
+         * every glyph boundary. */
+        const cellLeft = x - pad;              // where this quad starts (scene)
+        const runStart = (cellLeft + totalW / 2) / runW; // as 0..1 of the run
+        const runSpan = cellW / runW;
+
         const mat = new THREE.ShaderMaterial({
           vertexShader: textVertexShader,
           fragmentShader: textFragmentShader,
@@ -77,6 +95,11 @@ export function createSplitText(group, params) {
             uReveal: { value: 0 },
             uColor: { value: new THREE.Color(params.textColor) },
             uOpacity: { value: 1 },
+            uSweep: { value: -0.35 },
+            uGlyphAt: { value: runStart },
+            uGlyphW: { value: runSpan },
+            uBand: { value: params.textSweepBand ?? 0.075 },
+            uSilver: { value: 0 },
           },
           transparent: true,
           depthTest: false,
@@ -92,6 +115,7 @@ export function createSplitText(group, params) {
         group.add(mesh);
         chars.push(mat.uniforms.uReveal);
         fades.push(mat.uniforms.uOpacity);
+        sweeps.push(mat.uniforms.uSweep, mat.uniforms.uSilver);
       }
       x += adv + tracking;
     });
@@ -105,6 +129,10 @@ export function createSplitText(group, params) {
     },
     get fades() {
       return fades;
+    },
+    /** flat list of this text's uSweep / uSilver uniform objects, pairs */
+    get sweeps() {
+      return sweeps;
     },
   };
 }

@@ -147,6 +147,15 @@ export function defaultParams() {
     textWeight: 400,
     textTracking: 0, // em
     textColor: "#0a0a0a",
+    // The silver sweep. A narrow band of metal crosses the heading on a loop,
+    // timed so it passes and then waits — a reflection that came round every
+    // few seconds without pause would read as a loading bar.
+    textSweep: true,
+    textSweepPeriod: 5.4, // seconds for one crossing (band + idle)
+    textSweepCross: 1.9, // of which this much is the band actually moving
+    textSweepDelay: 1.6, // dead time before the first pass, after the reveal
+    textSweepBand: 0.075, // band half-width, in run-widths
+    textSweepTilt: 0.0, // reserved: skew the band off vertical (unused)
     textAt: 0.42, // fraction of the spread
     textTime: 0.95,
     textStagger: 0.015,

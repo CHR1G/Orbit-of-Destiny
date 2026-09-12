@@ -1437,6 +1437,9 @@ export default function Carousel() {
     // (now - start) so the frozen frames below simply stop time instead of
     // banking a jump that would pop when the overlay closes.
     let clock = 0;
+    // Queried once and held: matchMedia objects stay live, so the sweep reads
+    // `.matches` every frame and honours the OS setting without a reload.
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     // Frames still to draw after the overlay opens. Two is enough to settle
     // the backdrop the glass samples; after that the canvas holds still.
     let settleFrames = 0;
@@ -1462,6 +1465,63 @@ export default function Carousel() {
 
       clock += dt;
       uniforms.uTime.value = clock;
+
+      /* A highlight travelling across the type is exactly the class of motion
+       * `prefers-reduced-motion` is asking to be spared, so it is gated here
+       * and the heading simply stays plain ink. Read once per frame rather than
+       * cached, so the OS setting takes effect without a reload. */
+      const sweepStill = reducedMotion.matches;
+
+      /* The silver sweep across the heading. Driven from here rather than by a
+       * gsap timeline so it survives splitText.build() — the glyph materials
+       * are rebuilt whenever parallaxFontSize re-measures the run, and a tween
+       * bound to the old uniforms would be left pointing at disposed objects
+       * and silently stop. Reading the live uniform list every frame costs
+       * nothing and cannot go stale.
+       *
+       * The cycle is mostly idle: the band crosses over `textSweepCross`
+       * seconds and then waits out the rest of `textSweepPeriod`. A reflection
+       * that returned immediately would read as a marquee or a loading bar,
+       * which is the opposite of the intent — this should catch the eye once
+       * and then let go. `textSweepDelay` holds it back until the reveal has
+       * finished, so the metal does not start moving over a heading that is
+       * still unfurling.
+       *
+       * The band's centre travels from -0.35 to 1.35 so it enters and leaves
+       * fully off the ends of the run; starting at 0 would pop it into
+       * existence over the first letter. */
+      if (params.textSweep && splitText.sweeps.length && !sweepStill) {
+        const cyc = params.textSweepPeriod;
+        const cross = Math.min(params.textSweepCross, cyc);
+        const t = clock - params.textSweepDelay;
+        let u = 0; // 0..1 across the whole cycle
+        if (t > 0) u = (t % cyc) / cyc;
+        const p = Math.min(1, u / (cross / cyc)); // 0..1 across the crossing
+
+        // Position travels at a constant rate. It used to be eased with
+        // 1-(1-p)^3, which bunched the crossing into the first third of the
+        // window and then left the band parked off the right-hand end of the
+        // type for the rest of it — where nothing is drawn. Linear keeps the
+        // band's time on the letters equal to its time off them.
+        const band = -0.35 + p * 1.7;
+
+        // The strength envelope has to be keyed to where the band IS, not to
+        // how far through the window we are. The band enters the run at
+        // p = 0.35/1.7 and leaves at p = 1.35/1.7, so it is actually over the
+        // type only between those two — and that is the stretch that has to
+        // sit at full strength. The old sin(p*PI) envelope peaked at p = 0.5,
+        // which is past the right edge, so the metal was dimmest exactly while
+        // it was crossing the letters and brightest while it was off them.
+        const bw = params.textSweepBand ?? 0.075;
+        const ENTER = (0.35 - bw) / 1.7; // band's leading edge reaches the run
+        const LEAVE = (1.35 + bw) / 1.7; // band's trailing edge clears it
+        const silver =
+          smoothstep(0, ENTER, p) * (1 - smoothstep(LEAVE, 1, p)) * 0.95;
+        for (let i = 0; i < splitText.sweeps.length; i += 2) {
+          splitText.sweeps[i].value = band;
+          splitText.sweeps[i + 1].value = silver;
+        }
+      }
 
       if (interactive && !dragging && !picking && !zoomed) {
         idleTimer += dt;
