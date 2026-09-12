@@ -1622,8 +1622,47 @@ body[data-tone] .element-serif {
 }
 /* Rim gather + dispersion: light piles up toward the edge and the walls
    split warm/cool. Same optical signature as .liquid-btn::before, at a
-   smaller radius because the row is smaller than the pill. */
+   smaller radius because the row is smaller than the pill.
+ *
+ * The source's ::before is not this, and the difference is worth keeping
+ * straight. In threeui's generate-button the ::before is an OUTER BEZEL: it
+ * bleeds `--padding` past the button on all four sides and carries its own
+ * darker gradient, so the button reads as a plate seated in a raised rim
+ * rather than as a flat card. That bezel is the single strongest part of the
+ * look, so it is reproduced below as .play-row::before's box-shadow ring
+ * while the gradient here keeps doing the rim-light job.
+ *
+ * What was NOT ported: the source's `z-index: -1` on that bezel. It works
+ * there because the button is the only stacking context; on this page the row
+ * sits over a WebGL canvas and a doll, and a negative z-index would drop the
+ * bezel behind them. The bezel is drawn with a spread ring instead, which
+ * needs no stacking trick. */
 .play-row::before {
+  content: "";
+  position: absolute;
+  /* The bezel's overhang. The source uses 4px at its own scale; the row's
+     font-size is smaller here, so it is expressed in em and lands near 3px. */
+  inset: -0.22em;
+  border-radius: calc(1.1em + 0.22em);
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    0deg,
+    rgba(150, 132, 118, 0.20) 0%,
+    rgba(160, 144, 130, 0.10) 45%,
+    rgba(255, 255, 255, 0.28) 100%
+  );
+  box-shadow:
+    /* Prismatic edge, warm on one side and cool on the other — the source's
+       `inset 0.5px 0` / `inset -0.5px 0` pair, which is what stops the rim
+       reading as a plain grey outline. */
+    inset 0.5px 0 1px rgba(255, 196, 150, 0.30),
+    inset -0.5px 0 1px rgba(190, 210, 235, 0.28),
+    inset 0 0.5px 1px rgba(255, 255, 255, 0.40);
+}
+/* The rim-light pass, which used to share ::before. Kept on a separate layer
+   so it can blend in `screen` without lifting the bezel's own shadow too. */
+.play-row > .play-rim {
   content: "";
   position: absolute;
   inset: 0;
@@ -1637,10 +1676,6 @@ body[data-tone] .element-serif {
     rgba(255, 250, 240, 0.20) 86%,
     rgba(255, 252, 246, 0.40) 100%
   );
-  box-shadow:
-    inset 0.5px 0 1px rgba(255, 196, 150, 0.30),
-    inset -0.5px 0 1px rgba(190, 210, 235, 0.28),
-    inset 0 0.5px 1px rgba(255, 255, 255, 0.40);
 }
 /* The hover highlight, and the whole point of this row.
  *
@@ -1713,31 +1748,80 @@ body[data-tone] .element-serif {
     inset -0.5px 0 1.5px rgba(200, 218, 240, 0.34),
     inset 0 0.5px 1px rgba(255, 255, 255, 0.5);
 }
-/* Lit, the way the switch lights when it is thrown: the accent bleeds in
-   from the edges while the plate stays glass.
-   
-   Was #2f6bff, the toggle's own blue, kept so the two states stayed related.
-   That no longer holds: the plate is now 米白 and the hover glow is warm, so
-   a blue accent would be a third colour in the same row. This is the hover
-   hue, pushed further — selected reads as "the same light, turned up". */
+/* Selected: a quiet light-grey fill, and deliberately NOT a highlight.
+ *
+ * The row has two different jobs to signal and they were competing. Hover is
+ * transient — the pointer is here now — so it gets the warm light. Selection
+ * is a standing state: one row is always selected, so if it also glowed the
+ * column would have a permanent accent in it and the hover would have nothing
+ * left to say. So selection goes the other way and reads as a pressed-in
+ * well: flat neutral grey, slightly inset, no warm cast and no rim light.
+ *
+ * The grey is kept light (#ececec on the #fafafa page) and the ink is
+ * darkened a step so the label still clears contrast against it. */
 .play-row.is-on {
   opacity: 1;
-  border-color: rgba(226, 194, 158, 0.95);
+  border-color: rgba(160, 160, 160, 0.45);
   background: linear-gradient(
     180deg,
-    rgba(255, 252, 247, 0.99) 0%,
-    rgba(254, 245, 232, 0.94) 54%,
-    rgba(250, 236, 218, 0.9) 100%
+    rgba(233, 233, 233, 0.96) 0%,
+    rgba(236, 236, 236, 0.92) 54%,
+    rgba(230, 230, 230, 0.9) 100%
   );
   box-shadow:
-    inset 0 0 0 1px rgba(226, 194, 158, 0.6),
-    inset 0 1.5px 0 rgba(255, 255, 255, 1),
-    inset 0 0 20px -7px rgba(255, 214, 168, 0.75),
-    0 1px 2px rgba(120, 100, 86, 0.06),
-    0 10px 22px -14px rgba(120, 100, 86, 0.32);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    inset 0 2px 3px rgba(90, 90, 90, 0.1),
+    0 1px 2px rgba(120, 100, 86, 0.05),
+    0 8px 18px -14px rgba(120, 100, 86, 0.26);
 }
+/* No glow plate on the selected row — see above. */
 .play-row.is-on::after {
+  opacity: 0;
+}
+.play-row.is-on::before {
+  mix-blend-mode: normal;
+  background: none;
+  box-shadow: none;
+}
+/* The selected row's ink, darkened to hold up on the grey. */
+.play-row.is-on .play-name {
+  color: #1d1c1a;
+}
+.play-row.is-on .play-desc,
+.play-row.is-on .play-level {
+  color: #4a4642;
+}
+/* Hover beats selection, so the cursor always confirms what it is over: a row
+   that is both selected and hovered shows the warm light, not the grey well. */
+.play-row.is-on:hover,
+.play-row.is-on:focus-visible {
+  border-color: rgba(232, 208, 182, 0.85);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 251, 245, 0.99) 0%,
+    rgba(253, 246, 236, 0.94) 40%,
+    rgba(250, 240, 228, 0.9) 100%
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(120, 100, 86, 0.06),
+    inset 0 0 0 1px rgba(255, 250, 244, 0.6),
+    0 2px 3px rgba(120, 100, 86, 0.06),
+    0 12px 26px -14px rgba(120, 100, 86, 0.32);
+}
+.play-row.is-on:hover::after,
+.play-row.is-on:focus-visible::after {
   opacity: 1;
+}
+.play-row.is-on:hover .play-name,
+.play-row.is-on:focus-visible .play-name {
+  color: #0a0a0a;
+}
+.play-row.is-on:hover .play-desc,
+.play-row.is-on:hover .play-level,
+.play-row.is-on:focus-visible .play-desc,
+.play-row.is-on:focus-visible .play-level {
+  color: #2f2b27;
 }
 @supports (backdrop-filter: url("#glass-refract")) {
   .play-row {
@@ -2233,16 +2317,38 @@ body:has(.oracle-stage) .doll {
 /* Every plate is a full-size 1293x1080 image scaled into the same box, so each
  * one is a full-viewport texture as far as the compositor is concerned.
  *
- * Only the two eyeballs move now — the blink was removed, see DollFace.jsx —
- * and they are the only <image> elements that ever carry a transform
- * attribute, which is exactly what this selects. The three static plates get
- * no hint and stay unpromoted. */
-.doll-svg image[transform] {
+ * Only the two eyeballs and the two lids ever move — the blink was removed,
+ * see DollFace.jsx — so those four get promoted and the body plate, which is
+ * static, stays unpromoted. Selected by position rather than by
+ * `image[transform]`: that attribute only appears once the rAF loop writes its
+ * first frame, so an attribute-based selector leaves the layers unpromoted for
+ * the first paint and re-evaluates on every single frame after that. The order
+ * is fixed by the JSX (eye-left, eye-right, body, lid-left, lid-right). */
+.doll-svg image:nth-child(1),
+.doll-svg image:nth-child(2),
+.doll-svg image:nth-child(4),
+.doll-svg image:nth-child(5) {
   will-change: transform;
 }
 
 /* A portrait phone has no room for a face this size without burying the
-   ring, so it is desktop-only for now. */
-@media (max-width: 639px) {
+ * ring, so it is desktop-only for now.
+ *
+ * 480px, matching `tightAt` in components/ring/params.js — not the 639/640
+ * this used to say. Those two numbers were describing different things and
+ * the gap between them left a band that belonged to neither: from 480 to 639
+ * the doll was already gone and the play column had already collapsed to a
+ * pill (Tailwind's `max-sm`), but the ring was still being laid out at
+ * narrow-band proportions, i.e. the page had committed to phone presentation
+ * while the ring still thought it had desktop room for the arc.
+ *
+ * The ring is the thing that decides the layout, so its band wins. Below 480
+ * both agree: phone presentation, tight ring, no doll. Above 480 the doll is
+ * present, which is what the 640-1024 narrow band always assumed. All three
+ * numbers now describe one boundary instead of three.
+ *
+ * This must stay in sync with `tightAt`, which is inclusive — so this is
+ * `max-width: 480px`, not 479. If that value is retuned, retune this. */
+@media (max-width: 480px) {
   .doll { display: none; }
 }

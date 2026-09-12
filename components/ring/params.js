@@ -52,6 +52,13 @@ export function defaultParams() {
     // offset is quoted in ring radii (see stageX), so it stays correct on
     // both sides of the boundary now — the band is purely about how big the
     // cards and the arc are, not about where the arc sits.
+    //
+    // This is also the value the doll's hide breakpoint mirrors (globals.css,
+    // `@media (max-width: 480px) { .doll { display: none } }`). Those two
+    // used to disagree — the doll hid at 639 while this band opened at 480 —
+    // which left 480..639 in a state neither had designed: phone
+    // presentation, no doll, but a ring still sized for desktop. Retune the
+    // two together.
     tightAt: 480, // inclusive
     // 1.15, not 0.82. At 22 cards each slot is half the angle it used to
     // be, so the same radius that kept twelve plates apart now leaves the
