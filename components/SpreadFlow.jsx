@@ -311,7 +311,7 @@ export default function SpreadFlow({
               ← 换个牌阵
             </button>
             <span className="cn-sans text-[11px] text-black/28">
-              大众占卜 · 仅供娱乐
+              固定 {spread.slots.length} 张 · 逐张翻开 · 照问题的本来面目答
             </span>
           </div>
         </div>
@@ -328,7 +328,7 @@ export default function SpreadFlow({
       >
         <div className="mx-auto flex w-full max-w-[620px] flex-col items-center gap-6 px-6 py-10 text-center sm:px-10">
           <div className="text-xs uppercase tracking-[0.2em] text-black/40">
-            {spread.emoji} {spread.name} · 大众占卜
+            {spread.emoji} {spread.name}牌阵 · 共 {spread.slots.length} 张
           </div>
 
           <div className="relative flex h-40 w-40 items-center justify-center">
@@ -631,7 +631,7 @@ export default function SpreadFlow({
         </div>
 
         <p className="mt-5 text-center text-xs text-black/30">
-          大众占卜 · 仅供娱乐 · 别让一副牌替你做决定
+          {spread.name}牌阵 · 共 {spread.slots.length} 张 · 每张各占一个位置
         </p>
       </div>
     </div>

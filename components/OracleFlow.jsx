@@ -91,7 +91,7 @@ async function buildShareCanvas(reveal, card) {
 
   ctx.fillStyle = "rgba(20,24,15,0.5)";
   ctx.font = "26px system-ui, sans-serif";
-  ctx.fillText("大众占卜 · 主牌 " + card.name, pad, y);
+  ctx.fillText("INFINITE SPACE · 大阿卡纳 " + card.name, pad, y);
   y += 52;
 
   ctx.fillStyle = ink;
@@ -529,7 +529,7 @@ export default function OracleFlow({
           </form>
 
           <p className="mt-5 text-center text-xs text-black/35">
-            大众占卜 · 仅供娱乐 · 最终决定权永远在你手上
+            {oracle?.topic?.label || "今日"}之问 · 由你开口，也由你收尾
           </p>
         </div>
       </div>
@@ -549,7 +549,7 @@ export default function OracleFlow({
       >
         <div className="mx-auto flex w-full max-w-[620px] flex-col items-center gap-6 px-6 py-10 text-center sm:px-10">
         <div className="text-xs uppercase tracking-[0.2em] text-black/40">
-          {topic.label} · 大众占卜
+          {topic.label}之问 · 单张指引
         </div>
 
         {/* The breathing ring is the point of this screen: it buys three
@@ -701,7 +701,7 @@ export default function OracleFlow({
         <header className="mb-5 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="text-[10px] uppercase tracking-[0.2em] text-black/40">
-              大众占卜 · {reveal.topic.label} · 你选了 {reveal.key}
+              {reveal.topic.label}之问 · 第 {reveal.key} 张 · 由你选定
             </div>
             {/* The question as asked, above the headline. A reading that
                 opens with the visitor's own wording lands differently from
@@ -887,7 +887,7 @@ export default function OracleFlow({
         </div>
 
         <p className="mt-5 text-center text-xs text-black/30">
-          大众占卜 · 仅供娱乐 · 别让一张牌替你做决定
+          {reveal.topic.label}之问 · 大阿卡纳 {reveal.card.zh} · 牌面已收
         </p>
       </div>
     </div>

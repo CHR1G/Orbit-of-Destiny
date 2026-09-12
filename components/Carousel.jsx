@@ -1664,8 +1664,15 @@ export default function Carousel() {
 
       {/* touch-none, or the browser claims the gesture for panning and the
           pointermove stream dies mid-drag. Nothing here scrolls — the swipe
-          is the carousel. */}
-      <div ref={containerRef} className="fixed inset-0 touch-none" />
+          is the carousel.
+
+          z-0 is load-bearing, not decoration. The canvas is opaque where the
+          ring draws, and with no z-index it wins by DOM order over anything
+          later that is also unpainted — which buried the colophon and left
+          it rendering invisibly under this element. Pinning the canvas to
+          z-0 puts it in the same context as .doll (also z-0, earlier in the
+          DOM, so underneath) and leaves z-1 upward free for text. */}
+      <div ref={containerRef} className="fixed inset-0 z-0 touch-none" />
 
       {/* The five ways in: one basic one-card tap and the four spreads.
           This is the menu, not a card index — the ring's own meta lockup
@@ -1792,6 +1799,20 @@ export default function Carousel() {
           </div>
         );
       })}
+
+      {/* The colophon. It used to ride inside each reading as a disclaimer
+          ("仅供娱乐"), which read as a legal footnote stapled onto a page
+          that is otherwise written in one voice — and repeating it three
+          times made it nagging rather than gracious. Stated once here, in
+          the same register as the rest of the copy, it says the same thing
+          without arguing with the reading while you are reading it.
+
+          z-0 puts it under .oracle-stage (z-20) so a reading buries it,
+          which is what we want — the disclaimer belongs on the menu, not
+          stapled to the answer. */}
+      <p className="tarot-colophon">
+        22 张大阿卡纳 · 牌面照见的是你已经在想的事 · 决定始终由你做
+      </p>
 
       {/* 001 to 100. Holds the entry at the seed until it gets there. */}
       <div
