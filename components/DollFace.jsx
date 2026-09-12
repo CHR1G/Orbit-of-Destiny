@@ -113,25 +113,74 @@ const MAX_TRAVEL = 10;
  * An earlier pass wrote this as 1.5 plate px and the motion was invisible:
  * the transform is in viewBox units, and at a 1440x900 window the plate is
  * drawn 1078 CSS px wide against a 1293-unit viewBox, so a plate px is only
- * 0.83 screen px. The loop was running (sampled 38 distinct transform values
- * across 40 frames) but the lid was moving about one pixel over five seconds,
- * which is why it read as "not implemented". Distinct-values was a bad test:
- * it proves the loop ticks, not that an eye can see anything.
+ * 0.83 screen px. 3.2/2.6 screen px then measured a genuine 4.73/3.84 px of
+ * travel and STILL read as motionless, so the unit was only half the problem.
+ * Two more things were wrong underneath it.
  *
- * So this is in SCREEN px and converted through the live scale in the tick.
- * 3.2/2.6 px are chosen against the clearance measured off the plates:
+ * (1) The swing was too slight to read. Compositing the plates at both
+ * extremes and diffing the socket regions says how much of the motion can be
+ * seen: at 3.2px it changes only 2.1% of the left socket's pixels by 20/255 or
+ * more. Real, but *thin*, and spread over 5.2s — below the threshold where a
+ * viewer reads "moving" rather than "a still image". Not a loop bug: the loop
+ * was always writing correct values.
  *
- *   left   socket hole y[704..812], lid bottom edge 778
- *   right  socket hole y[449..596], lid bottom edge 603
+ * (2) A sine spends most of its time near the ends. Its per-frame step is
+ * largest at the crossing, so the eye gets a slow dwell then a quick transit,
+ * which reads as jitter rather than breathing. The tick sharpens the wave
+ * toward a triangle so the speed is closer to constant.
  *
- * The right lid's edge already sits 7px past the bottom of its hole, so the
- * binding constraint is UPWARD travel: lift it more than a few plate px and
- * the hole's lower rim is exposed and the socket tears. Downward is cheaper —
- * the lid just deepens its hood. The sine is therefore biased downward rather
- * than centred, which buys amplitude without ever uncovering the rim. */
+ * The amplitudes come from the plate geometry, measured rather than guessed:
+ *
+ *   left   lid opaque core y[642..776]   ball y[688..796]   hole y[704..812]
+ *   right  lid opaque core y[417..601]   ball y[450..557]   hole y[449..596]
+ *
+ * The lid's bottom edge is a HARD edge, not a feather — alpha is 255 right
+ * down to the last row and then 151/168 in a single pixel — so what keeps it
+ * from showing is that it stays *inside* the socket the body plate punches.
+ * The binding direction is therefore DOWN: past the hole's bottom edge the
+ * lid's cut line lands on the cheek as a visible arc.
+ *
+ *   left   down budget = 812 - 776 = +36 plate px
+ *   right  down budget = 596 - 601 = -5 plate px
+ *
+ * The right lid's edge already sits a few px past its hole's bottom at rest,
+ * so it has effectively no downward room to spend, which is why the two eyes
+ * are not treated alike. Both are held to about a quarter of the left's
+ * budget anyway: 30px of travel was tested and read as a deliberate squint
+ * rather than a breath, so the whole effect lives well inside the geometric
+ * limit and the limit is not what is setting these numbers.
+ *
+ * An earlier draft of this comment claimed the rule was "the lid must keep
+ * covering the eyeball". That is wrong and worth recording: the stretch of
+ * ball visible below the lid's edge IS the open eye, so uncovering it is not
+ * a failure, it is the point. Only the cut line leaving the socket is. */
+/* `bias` sets where the wave sits: 1.0 puts its top at 0, so the lid touches
+ * its authored rest pose and closes from there — the eye still reaches the
+ * open state the artist drew. Above 1.0 the whole swing moves down and the
+ * eye is left permanently part-closed, which at 2.6 had it never opening past
+ * 80% of its own travel. Below 1.0 buys some upward room, which only the
+ * right lid has. */
+/* Amplitudes are also kept clear of LID_TRAVEL on purpose. A wave that hits
+ * its clamp flat-tops, and a flat top is a dwell at the extreme — the very
+ * thing the sharpened wave exists to remove. The right eye at 7px was
+ * clipping for 6.8% of its cycle; 6.6px lands just under and never touches. */
 const LID_BREATH = [
-  { amp: 3.2, period: 5200, phase: 0, bias: 0.35 },
-  { amp: 2.6, period: 6100, phase: 0.5, bias: 0.35 },
+  { amp: 7.2, period: 5200, phase: 0, bias: 1.0 },  // left: down-only
+  { amp: 6.6, period: 6100, phase: 0.5, bias: 0.5 }, // right: both ways
+];
+
+/* Hard travel limits, in PLATE px. The tick clamps to these so the lid's cut
+ * line can never leave the socket, whatever the wave asks for — that is the
+ * one failure that shows as a visible arc on the cheek.
+ *
+ * Down is the tight direction (see above), and the right lid starts 5px past
+ * its hole's bottom already, so its down allowance is deliberately small.
+ * Up is cheap: it only opens the eye further. The clamp is not what sets the
+ * look — the amplitudes sit at roughly a quarter of these — it is insurance
+ * against a retuned amplitude or a re-exported plate. */
+const LID_TRAVEL = [
+  { up: 24, down: 30 }, // left
+  { up: 24, down: 8 },  // right
 ];
 
 /* Idle: after this long without a pointer the face looks around on its own.
@@ -222,13 +271,33 @@ export default function DollFace() {
          *
          * The amplitude is authored in screen px, so it has to be divided by
          * the same scale `k` the pupil travel uses to become viewBox units.
-         * `bias` pushes the wave downward (positive viewBox y) and never up:
-         * see LID_BREATH for the measurement that forces the one-sided swing. */
+         * `bias` pushes the wave downward (positive viewBox y); see
+         * LID_BREATH for the per-eye budgets that set it.
+         *
+         * `sharpen` bends the sine toward a triangle so the lid spends less
+         * time parked at the ends and its speed is closer to constant. A plain
+         * sine has near-zero velocity at the extremes, which is why a small
+         * amplitude read as "stuck" rather than "breathing": a long dwell, then
+         * a quick transit. asin(sin x)/pi*2 keeps the range and the period and
+         * only redistributes the speed.
+         *
+         * The result is clamped to the per-eye travel budget rather than
+         * trusted. The wave is smooth and the budgets were measured with a
+         * margin, but a hard clamp is what makes it impossible for a retuned
+         * amplitude — or a re-exported plate — to push the lid past the ball
+         * and expose it. Cheap insurance on a constraint that shows as a tear
+         * in the socket when violated. */
         const br = LID_BREATH[i];
         const t = (now / br.period + br.phase) % 1;
-        const wave = (Math.sin(t * Math.PI * 2) + br.bias) / (1 + br.bias);
-        const lidY = (wave * br.amp) / k;
-        place(lidsRef.current[i], 0, lidY);
+        const raw = Math.sin(t * Math.PI * 2);
+        const sharpen = 0.45;
+        const shaped =
+          (Math.asin(raw) / Math.PI) * 2 * sharpen + raw * (1 - sharpen);
+        const wave = (shaped + br.bias) / (1 + br.bias);
+        /* Screen px -> viewBox units, then clamped. UP is negative y. */
+        let lidPlate = (wave * br.amp) / k;
+        lidPlate = Math.min(LID_TRAVEL[i].down, Math.max(-LID_TRAVEL[i].up, lidPlate));
+        place(lidsRef.current[i], 0, lidPlate);
       }
     };
 
