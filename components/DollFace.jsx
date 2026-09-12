@@ -108,12 +108,30 @@ const EYES = [
  * glance, not so much that the ball leaves the socket painted for it. */
 const MAX_TRAVEL = 10;
 
-/* Breathing lid. Amplitude in plate px, and the two periods in ms — slow
- * enough to be felt rather than watched, and the eyes are offset so they never
- * pulse together. Phase 0.5 on the right eye is what keeps them apart. */
+/* Breathing lid, in SCREEN px — see the note below on why the unit matters.
+ *
+ * An earlier pass wrote this as 1.5 plate px and the motion was invisible:
+ * the transform is in viewBox units, and at a 1440x900 window the plate is
+ * drawn 1078 CSS px wide against a 1293-unit viewBox, so a plate px is only
+ * 0.83 screen px. The loop was running (sampled 38 distinct transform values
+ * across 40 frames) but the lid was moving about one pixel over five seconds,
+ * which is why it read as "not implemented". Distinct-values was a bad test:
+ * it proves the loop ticks, not that an eye can see anything.
+ *
+ * So this is in SCREEN px and converted through the live scale in the tick.
+ * 3.2/2.6 px are chosen against the clearance measured off the plates:
+ *
+ *   left   socket hole y[704..812], lid bottom edge 778
+ *   right  socket hole y[449..596], lid bottom edge 603
+ *
+ * The right lid's edge already sits 7px past the bottom of its hole, so the
+ * binding constraint is UPWARD travel: lift it more than a few plate px and
+ * the hole's lower rim is exposed and the socket tears. Downward is cheaper —
+ * the lid just deepens its hood. The sine is therefore biased downward rather
+ * than centred, which buys amplitude without ever uncovering the rim. */
 const LID_BREATH = [
-  { amp: 1.5, period: 5200, phase: 0 },
-  { amp: 1.2, period: 6100, phase: 0.5 },
+  { amp: 3.2, period: 5200, phase: 0, bias: 0.35 },
+  { amp: 2.6, period: 6100, phase: 0.5, bias: 0.35 },
 ];
 
 /* Idle: after this long without a pointer the face looks around on its own.
@@ -133,7 +151,8 @@ export default function DollFace() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       // The lids must still be placed, because their element carries the
       // breathing transform in the animated path and would otherwise inherit
-      // the SVG's own default. A zero translate is the rest pose.
+      // the SVG's own default. A zero translate is the rest pose — the
+      // animated wave is biased downward from here, so this is its baseline.
       for (const node of lidsRef.current) {
         if (node) node.setAttribute("transform", "translate(0 0)");
       }
@@ -199,10 +218,17 @@ export default function DollFace() {
         /* Breathing lid. A sine rather than a tween, because the point is an
          * unending slow drift with no visible start or stop — anything with an
          * envelope would draw attention to the moment it begins. The right eye
-         * is phase-shifted half a cycle so the two never move together. */
+         * is phase-shifted half a cycle so the two never move together.
+         *
+         * The amplitude is authored in screen px, so it has to be divided by
+         * the same scale `k` the pupil travel uses to become viewBox units.
+         * `bias` pushes the wave downward (positive viewBox y) and never up:
+         * see LID_BREATH for the measurement that forces the one-sided swing. */
         const br = LID_BREATH[i];
         const t = (now / br.period + br.phase) % 1;
-        place(lidsRef.current[i], 0, Math.sin(t * Math.PI * 2) * br.amp);
+        const wave = (Math.sin(t * Math.PI * 2) + br.bias) / (1 + br.bias);
+        const lidY = (wave * br.amp) / k;
+        place(lidsRef.current[i], 0, lidY);
       }
     };
 
