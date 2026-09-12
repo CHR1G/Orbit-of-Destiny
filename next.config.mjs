@@ -7,7 +7,7 @@ const nextConfig = {
    * JavaScript is answered with 403, the page hydrates nothing and renders
    * blank. Listing the loopback hosts here is the documented opt-in and only
    * affects `next dev`; production builds are untouched. */
-  allowedDevOrigins: ["127.0.0.1", "localhost", "192.168.1.196"],
+  allowedDevOrigins: ["127.0.0.1", "localhost", "192.168.1.196", "192.168.124.15"],
 
   /* The whole experience is client-side: one page, one WebGL canvas, no API
    * routes and no server rendering. Exporting to plain HTML therefore loses

@@ -43,3 +43,13 @@ next-env.d.ts
 # legacy carousel art — replaced by public/B-*.png. Baidu Syncdisk may restore
 # these on disk from another PC; keep them out of git so they are not re-added.
 public/*.webp
+
+# Superseded art and scratch dumps that Baidu Syncdisk restores from another
+# PC. Listed so a restore cannot sneak them back into a commit.
+# NOTE: .gitignore does not stop `next build` from copying public/ into out/,
+# so if these reappear on disk they have to be moved out again (see HANDOFF.md).
+public/tarot-old/
+public/_unused/
+public/_originals/
+_oracle-export/
+deck-preview.html

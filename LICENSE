@@ -1,6 +1,7 @@
 MIT License
 
 Copyright (c) 2026 Yousuf Soomro
+Copyright (c) 2026 the Orbit of Destiny fork contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,19 +35,30 @@ The contents of `public/` are NOT covered by it:
     Licence 1.1. Copyright 2024 The Geist Project Authors.
     https://github.com/vercel/geist-font
 
-  - Project imagery (`public/*.webp`) is not mine. It was collected
-    from Behance, more or less at random, purely so there was real work to
-    build and judge the layout against. I claim no ownership of any of it, no
-    licence over it is granted by the terms above, and its use here is not an
-    endorsement of reusing it. Anyone forking this should replace it with
-    their own work.
+  - 庞门正道细线体 / PangMenZhengDao-XiXian
+    (`public/fonts/PangMenZhengDao-XiXianTi.ttf`) is free for commercial use
+    by its author's terms. 7834 glyphs, 6763 of them CJK.
 
-    If you made one of these pieces and would like to be credited, or would
-    like it taken down, please open an issue on the repository and I will
-    sort it out.
+  - The Night Watch (`public/fonts/TheNightWatch.ttf`) ships with its own
+    font pack; see that pack for its terms. 81 glyphs, no CJK coverage.
 
-    The project names, disciplines and years shown alongside the images are
-    invented placeholders and are not claims about who made what.
+  - The arrow icon (`public/arrow-top-right-svgrepo-com.svg`) is from
+    https://www.svgrepo.com/.
+
+  - Tarot deck art (`public/tarot/*.webp`, 79 files) — **provenance and
+    licence unrecorded.**
+
+    These files arrived when this fork turned the carousel into a tarot
+    reader. Code comments describe the deck as "Rider–Waite–Smith style",
+    which names a layout convention rather than a licence, and the artwork
+    is a stylised modern deck rather than the historical RWS plates.
+
+    No licence over these images is granted by the terms above and they must
+    not be treated as reusable. **Before redistributing, deploying
+    commercially, or forking this repository, the maintainer needs to record
+    where these 79 files came from and under what terms they may be
+    redistributed** — and replace them if there is no such answer. See the
+    Status section of README.md.
 
 Third-party code included in this repository:
 
