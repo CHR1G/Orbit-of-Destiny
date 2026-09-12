@@ -1636,6 +1636,10 @@ export default function Carousel() {
           }`}
           aria-current={on ? "true" : undefined}
         >
+          {/* The rim-light pass. A real element rather than ::before because
+              ::before is doing the outer bezel — see globals.css — and the
+              source's generate-button needs both layers at once. */}
+          <span className="play-rim" aria-hidden="true" />
           <span className="play-name">
             <Sigil name={p.sigil} className="play-sigil" />
             {p.name}
