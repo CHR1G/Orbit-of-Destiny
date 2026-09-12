@@ -12,6 +12,7 @@ import {
 } from "./shaders/planeShaders";
 import { buildAtlas } from "./ring/atlas";
 import CardDetail from "./CardDetail";
+import DollFace from "./DollFace";
 import OracleFlow from "./OracleFlow";
 import TarotVortex, { vortexPointer } from "./TarotVortex";
 import { createMeta } from "./ring/meta";
@@ -1653,6 +1654,14 @@ export default function Carousel() {
 
   return (
     <>
+      {/* The doll's face, behind everything. Rendered BEFORE the canvas so
+          the ring composites over it — the renderer runs with `alpha: true`,
+          so the canvas is genuinely transparent and this reads through it
+          rather than being hidden. Purely decorative: it takes no pointer
+          events, so the wheel and the drag pass straight through to the
+          canvas below (which is now above). */}
+      <DollFace />
+
       {/* touch-none, or the browser claims the gesture for panning and the
           pointermove stream dies mid-drag. Nothing here scrolls — the swipe
           is the carousel. */}

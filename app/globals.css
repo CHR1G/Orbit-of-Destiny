@@ -1807,3 +1807,86 @@ body[data-tone] .element-serif {
   .play-pill-caret,
   .play-sheet .play-row { transition: none; }
 }
+
+/* ------------------------------------------------------------------ *
+ * 玩偶脸 — the doll's face, behind the ring.
+ *
+ * Drawn as its own flat SVG rather than folded into the ring's fragment
+ * shader: the face is a fixed background element, and adding a second
+ * subject to a fragment already sampling a 22-plate atlas would spend
+ * GPU budget for nothing. It renders BEFORE the canvas and the renderer
+ * is created with `alpha: true`, so the canvas is genuinely transparent
+ * and the ring composites over the face instead of covering it.
+ * ------------------------------------------------------------------ */
+.doll {
+  position: fixed;
+  left: -4vw;
+  top: 40%;
+  height: 110vh;
+  aspect-ratio: 1000 / 1200;
+  transform: translateY(-50%);
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.32s ease;
+  /* Fade the right edge out, but only past the eyes. Both of them have to
+     stay legible or the whole point of the face — following the cursor
+     with two pupils — is lost to the mask, and they sit at 34% and 66% of
+     the box. So the ramp holds full strength to 56%, then falls away over
+     the cheek and the jaw. A two-stop ramp has a visible knee where it
+     starts, which across half the screen reads as a hard edge; hence the
+     extra stops. */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 0%,
+    #000 56%,
+    rgba(0, 0, 0, 0.55) 74%,
+    rgba(0, 0, 0, 0.18) 88%,
+    transparent 98%
+  );
+  mask-image: linear-gradient(
+    to right,
+    #000 0%,
+    #000 56%,
+    rgba(0, 0, 0, 0.55) 74%,
+    rgba(0, 0, 0, 0.18) 88%,
+    transparent 98%
+  );
+}
+
+/* The reading overlay blurs a plate across the whole stage, and a face
+   showing through that wash reads as a smudge rather than as depth — so
+   the doll steps out while the overlay is up. `:has` keeps this out of
+   React entirely: the overlay is conditionally rendered, and the style
+   just follows it. */
+body:has(.oracle-stage) .doll {
+  opacity: 0;
+}
+
+.doll-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The blink layers park above the socket. `fill-box` is what makes the
+   percentage translate relative to the lid's own box — without it the
+   percentage resolves against the whole 1000x1200 viewBox and the lid
+   barely moves. */
+.doll-lid {
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+  transform: translateY(-108%);
+}
+
+/* Set by the rAF loop; the neutral value is here so reduced-motion users
+   (whose loop never starts) get centred pupils rather than a stale one. */
+.doll-pupil {
+  transform: translate(0, 0);
+}
+
+/* A portrait phone has no room for a face this size without burying the
+   ring, so it is desktop-only for now. */
+@media (max-width: 639px) {
+  .doll { display: none; }
+}
