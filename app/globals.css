@@ -940,13 +940,23 @@ body[data-tone] .element-serif {
   transform: scale(1.22);
 }
 .oracle-art-whiten {
-  /* The 85% white that turns the plate into a near-paper wash. opacity is
-     applied in the normal blend against the art layer underneath, so the
-     art is still faintly readable underneath (15% of its own colour shows
-     through). Keep this above the texture pass so texture can multiply into
-     the wash instead of the original plate. */
+  /* The white that turns the plate into a near-paper wash. opacity is applied
+     in the normal blend against the art layer underneath, so the art is still
+     faintly readable underneath. Keep this above the texture pass so texture
+     can multiply into the wash instead of the original plate.
+     
+     75%, down from 85%: at 85 only 15% of the figure's own colour survived and
+     the doll read as a ghost rather than as a background presence. Ten points
+     off the wash means 25% of the art shows through — still unmistakably a
+     wash, but the figure behind the reading is now legible as a figure.
+     
+     NOTE: this declaration is only the fallback for when the entry animation
+     is off — under `prefers-reduced-motion`, and before the animation starts.
+     While the animation runs its `both` fill holds the final keyframe, so the
+     value that actually paints is the one in @keyframes below. Change the two
+     together or not at all. */
   background: #ffffff;
-  opacity: 0.85;
+  opacity: 0.75;
   pointer-events: none;
 }
 .oracle-art-texture {
@@ -978,12 +988,19 @@ body[data-tone] .element-serif {
     transform: scale(1.22);
   }
 }
+/* The fade-in has to know the resting value, and it is the *authority* on it.
+ *
+ * `both` holds the final keyframe forever, so a `to { opacity: 0.85 }` here
+ * silently overrides whatever the rule above declares — changing the rule's
+ * opacity alone does nothing, which is a genuinely nasty way to spend an
+ * afternoon. The wash value lives here, and the rule above carries a matching
+ * comment rather than a second source of truth. */
 @keyframes oracle-art-whiten-in {
   from {
     opacity: 0;
   }
   to {
-    opacity: 0.85;
+    opacity: 0.75;
   }
 }
 .animate-oracle-art {
@@ -2061,6 +2078,50 @@ body:has(.oracle-stage) .doll {
   position: relative;
   width: 100%;
   height: 100%;
+  /* The sclera. The body plate punches a real transparent hole at each eye, so
+     without this the ball sits in front of the *page* and the eye reads as
+     pure white — which is what a sheet of #fafafa looks like, not what an
+     eyeball looks like. Sampled the skin around both sockets: (228,207,209) at
+     the right rim, (213,197,194) on the cheek, i.e. a warm neutral. This is
+     that family, lifted a little so it still reads as an eye rather than as
+     the hole it is: warm, not white.
+     
+     A solid colour rather than a sixth PNG: it is one flat fill, so shipping
+     another 1293x1080 RGBA plate to express it would be absurd. It sits under
+     the <svg>, so 眼球 -> 身体 -> 眼皮 still composites on top of it exactly as
+     before, and the ball keeps its own blue-grey orb and specular.
+     
+     Flat colour is the base, and the two radial layers over it do the work.
+     A uniform fill left the crescent with a hard geometric edge wherever the
+     plate's alpha hole ended, so it read as paper cut-outs laid in the face.
+     Real sclera darkens toward the corners — the sockets are deeper there, so
+     less light reaches them. Two offsets, one per eye, each fading to the
+     surrounding skin tone at the rim, which is what turns the cut-out edge
+     into an occlusion shadow.
+     
+     The centres are box-relative percentages derived from the plate: the eye
+     centres sit at plate (573.5,742) and (847,503.5) of 1293x1080, i.e. 44.4%
+     / 68.7% and 65.5% / 46.6% across and down. The radius is written in vh
+     rather than % because a percentage radius on a circle resolves against the
+     box *diagonal*, which would make it drift with aspect ratio; the socket is
+     about 10.5% of the plate height, and the box height is exactly 100vh, so
+     11vh is the same measurement in a unit that holds its shape. */
+  background:
+    radial-gradient(
+      circle 11vh at 44.4% 68.7%,
+      #f6ece6 0%,
+      #f2e6de 58%,
+      rgba(240, 228, 220, 0.55) 78%,
+      rgba(238, 224, 216, 0) 100%
+    ),
+    radial-gradient(
+      circle 11vh at 65.5% 46.6%,
+      #f6ece6 0%,
+      #f2e6de 58%,
+      rgba(240, 228, 220, 0.55) 78%,
+      rgba(238, 224, 216, 0) 100%
+    ),
+    #f3e8e0;
 }
 
 /* An <svg> root rather than stacked <img> elements. Not for clipping any

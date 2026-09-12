@@ -66,9 +66,21 @@ import { useEffect, useRef } from "react";
  * wrong again, check this first.
  *
  * ---------------------------------------------------------------------------
- * The only thing that animates is the pupil, and only by a few pixels. The
- * loop writes the SVG `transform` *attribute* (not a CSS property) once per
- * frame per ball; React never re-renders. */
+ * The lid micro-motion, and why it is 1.5px rather than a blink.
+ *
+ * A real blink was removed (see above): these plates carry the brow and the
+ * lash line, so any travel big enough to close an eye drags those landmarks
+ * with it. But a perfectly still lid reads as a decal, so some motion is kept
+ * — just far below the threshold where the seam can show.
+ *
+ * Amplitudes were measured rather than guessed. The lid plates overlap their
+ * sockets by 90px (left) and 154px (right) at rest, so a 1-2px excursion stays
+ * buried deep inside that overlap and the plate's edge never becomes visible.
+ * The two eyes are deliberately out of phase: in phase they read as one
+ * mechanism, and the figure is asymmetric to begin with.
+ *
+ * Everything animated is one attribute write per frame from a single rAF loop:
+ * nothing here re-renders React. */
 
 const PLATES = {
   body: "/doll/body.png",
@@ -96,6 +108,14 @@ const EYES = [
  * glance, not so much that the ball leaves the socket painted for it. */
 const MAX_TRAVEL = 10;
 
+/* Breathing lid. Amplitude in plate px, and the two periods in ms — slow
+ * enough to be felt rather than watched, and the eyes are offset so they never
+ * pulse together. Phase 0.5 on the right eye is what keeps them apart. */
+const LID_BREATH = [
+  { amp: 1.5, period: 5200, phase: 0 },
+  { amp: 1.2, period: 6100, phase: 0.5 },
+];
+
 /* Idle: after this long without a pointer the face looks around on its own.
  * Without it a touch device shows a frozen doll, which is the exact uncanny
  * look this is meant to avoid. */
@@ -104,12 +124,21 @@ const IDLE_AFTER = 4000;
 export default function DollFace() {
   const stageRef = useRef(null);
   const ballsRef = useRef([]);
+  const lidsRef = useRef([]);
 
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
     // Respect the OS setting: hold the face still, eyes centred.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // The lids must still be placed, because their element carries the
+      // breathing transform in the animated path and would otherwise inherit
+      // the SVG's own default. A zero translate is the rest pose.
+      for (const node of lidsRef.current) {
+        if (node) node.setAttribute("transform", "translate(0 0)");
+      }
+      return;
+    }
 
     let raf = 0;
     /* Start looking at the camera rather than at an arbitrary screen point.
@@ -166,6 +195,14 @@ export default function DollFace() {
         // fling the pupil straight out of the socket.
         const mag = Math.min(d / k, MAX_TRAVEL);
         place(ballsRef.current[i], (dx / d) * mag, (dy / d) * mag);
+
+        /* Breathing lid. A sine rather than a tween, because the point is an
+         * unending slow drift with no visible start or stop — anything with an
+         * envelope would draw attention to the moment it begins. The right eye
+         * is phase-shifted half a cycle so the two never move together. */
+        const br = LID_BREATH[i];
+        const t = (now / br.period + br.phase) % 1;
+        place(lidsRef.current[i], 0, Math.sin(t * Math.PI * 2) * br.amp);
       }
     };
 
@@ -213,14 +250,17 @@ export default function DollFace() {
             preserveAspectRatio="none"
           />
 
-          {/* 眼皮 — TOP of the stack, and static. See the note on the removed
-              blink at the head of this file: these plates have the brow and
-              the lash line baked in, so sliding them dislocates the face. They
-              sit at the register the artist drew, which is the correct open
-              eye, and nothing moves them. */}
-          {[PLATES.lidLeft, PLATES.lidRight].map((href) => (
+          {/* 眼皮 — TOP of the stack. No blink: these plates carry the brow and
+              the lash line, so any travel big enough to close an eye would drag
+              those landmarks down the face. They get a 1-2px breathing drift
+              instead, which stays buried inside the 90px/154px overlap they
+              already have with their sockets. */}
+          {[PLATES.lidLeft, PLATES.lidRight].map((href, i) => (
             <image
               key={href}
+              ref={(el) => {
+                lidsRef.current[i] = el;
+              }}
               href={href}
               x="0"
               y="0"
