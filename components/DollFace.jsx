@@ -82,8 +82,28 @@ import { useEffect, useRef } from "react";
  * Everything animated is one attribute write per frame from a single rAF loop:
  * nothing here re-renders React. */
 
+/* The five plates, all 1293x1080 RGBA.
+ *
+ * Only the body is WebP, and that is not an oversight. The other four are flat
+ * line art — lids and eyeballs — which PNG stores at 73-238x (24-77 KB each),
+ * so there is nothing to win. The body is the one photographic plate: soft
+ * vinyl gradients with no repeating structure, which is exactly what PNG is
+ * worst at, and it was compressing 2.6x: 2,127 KB.
+ *
+ * At 24% of first load, one image, it was the largest thing on the page by a
+ * factor of four (measured through CDP: 4,581 KB total, of which this was
+ * 2,127). Re-encoded to WebP at q95 it is 90 KB — a 24x cut — with the alpha
+ * plane kept bit-exact (`alpha_quality=100`) so the socket rims cannot drift,
+ * composite-space PSNR 46.7 dB, worst single pixel 12/255, and no structure in
+ * the error at 12x amplification. q100 would be 168 KB and lossless 1,083 KB
+ * if the fidelity bar ever moves, so the raw 2.1 MB original is worth keeping
+ * out of the tree rather than in it.
+ *
+ * The original is at
+ *   C:\Users\NINGMEI\.workbuddy\quarantine\infinite-space-2026-09-12\originals\body.png
+ * and tools/reencode_doll.py in the same folder regenerates any of these. */
 const PLATES = {
-  body: "/doll/body.png",
+  body: "/doll/body.webp",
   lidLeft: "/doll/lid-left.png",
   lidRight: "/doll/lid-right.png",
   eyeLeft: "/doll/eye-left.png",
