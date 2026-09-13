@@ -53,12 +53,18 @@ export function defaultParams() {
     // both sides of the boundary now — the band is purely about how big the
     // cards and the arc are, not about where the arc sits.
     //
-    // This is also the value the doll's hide breakpoint mirrors (globals.css,
-    // `@media (max-width: 480px) { .doll { display: none } }`). Those two
-    // used to disagree — the doll hid at 639 while this band opened at 480 —
-    // which left 480..639 in a state neither had designed: phone
-    // presentation, no doll, but a ring still sized for desktop. Retune the
-    // two together.
+    // Two things swap on this number and both read it from here:
+    //
+    //   .doll        hides    (globals.css, the 玩偶 block)
+    //   the ring     tightens (this file)
+    //
+    // They used to be 639 and 480, which took the figure away 160px before
+    // the ring admitted it was out of room — 481..639 was a narrow-band ring
+    // with nothing behind it. One boundary now.
+    //
+    // The play menu also swaps near here but at 640, and that is deliberate:
+    // its limit is the column's type size in vw, not the layout. Don't fold
+    // it into this number. See the phone-entry block in globals.css.
     tightAt: 480, // inclusive
     // 1.15, not 0.82. At 22 cards each slot is half the angle it used to
     // be, so the same radius that kept twelve plates apart now leaves the

@@ -86,6 +86,12 @@ export default function Carousel() {
   // pill on the bottom edge that names the current play and opens a sheet.
   // Without it a phone has no way to start a reading at all, which is
   // exactly what the column's `max-sm:hidden` used to cost.
+  //
+  // 640 is the column's own limit, not the ring's. The doll and the ring
+  // both switch at 480; this one is a type boundary — the column's
+  // description line is ~0.7vw and is down to 5px by 481, while the sheet
+  // sets 15px flat and stays readable. Two kinds of boundary, so two
+  // numbers; the phone-entry block in globals.css carries the measurements.
   const [playSheet, setPlaySheet] = useState(false);
 
   // Tells the render loop to stop redrawing while the overlay is open. The
@@ -1764,7 +1770,12 @@ export default function Carousel() {
           halves sit behind a single max-width media query in globals.css
           rather than a `sm:` utility: this block would otherwise need a
           `display` declaration, and unlayered CSS here outranks every
-          Tailwind responsive class on the same element. */}
+          Tailwind responsive class on the same element.
+
+          This is the one boundary that is NOT the ring's 480, and that is
+          deliberate rather than left over: the column's type is in vw and
+          stops being readable below about 640, while the sheet's is in px
+          and does not shrink. See the phone-entry block in globals.css. */}
       <div className="play-mobile">
         {playSheet && (
           <>
