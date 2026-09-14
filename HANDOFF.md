@@ -293,6 +293,10 @@ GIT_CONFIG_GLOBAL=/tmp/gitclean.cfg GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0 
 - PAT 长度不必是 40 位，短的也能用。不要把 token 写进任何会提交的文件。
 - 已配好的仓库级设置（本地 `.git/config`，换机后要重新配）：
   `http.proxy` / `https.proxy` = `http://127.0.0.1:7897`，remote 已是官方地址。
+- **只读比对也要先 fetch。** 本机 `.git` 里**没有 `origin/main` 跟踪引用**
+  （从没在这里 fetch 过），所以 `git log origin/main..HEAD` 会以
+  `fatal: ambiguous argument ... unknown revision` 退出 128 —— 看起来像仓库坏了，
+  其实只是少一步。先 `git fetch origin main`（过代理），再比。见第 7 节。
 
 ### 5. 改着色器后页面全黑
 
@@ -398,12 +402,18 @@ node node_modules/next/dist/bin/next build
 
 > ☝️ **别把上面那个 HEAD 当成事实来源。** 本文档每自我修正一次就会再多一个提交
 > （这份记录本身就是这么叠出来的），所以那张表写下的瞬间就已经旧了一点。
-> **要准确数字一律实测**：
+> **要准确数字一律实测** —— 但注意本机**没有 `origin/main` 跟踪引用**，
+> 直接跑 `git log origin/main..HEAD` 会 `fatal: ambiguous argument ... unknown revision`，
+> **得先 fetch**（fetch 要过代理，见第 6.4 节）：
 >
 > ```bash
-> git log --oneline -5
-> git log --oneline origin/main..HEAD     # 真正差了几个提交
+> git -c http.proxy=http://127.0.0.1:7897 -c https.proxy=http://127.0.0.1:7897 \
+>   fetch origin main
+> git log --oneline origin/main..HEAD     # 现在才数得出来
 > ```
+>
+> 2026-09-14 实测结果：本地领先 **6 个提交**（`3abbff7` / `09a64ca` / `25341bb` /
+> `4bcac06` / `8e32c38` / `2be5a70`），全部未推。
 
 **远端落后于本地，且落后多少会随文档更新继续变。** 2026-09-14 实测
 （不是照抄旧记录）：
@@ -577,8 +587,9 @@ node node_modules/next/dist/bin/next dev -p 3000
 ### 待做的工程项（按性价比排）
 
 9. **把本地未推的提交推上 GitHub**（唯一能靠命令做完、只差凭据的一项）。
-   远端停在 `22ae952`，本地已领先若干提交（`3abbff7` 起，含本文档的多次更新）。
-   **别抄文档里的数字，用 `git log --oneline origin/main..HEAD` 数。**
+   远端停在 `22ae952`，本地领先 6 个提交（`3abbff7` 起，含本文档的多次更新）。
+   **别抄文档里的数字**：先 `git fetch origin main`（过代理），
+   再 `git log --oneline origin/main..HEAD` 数。
    代理已验证可用，**缺的只是一个 classic PAT（勾 `repo`）**；
    `credential.helper=manager` 里没有 github.com 登录态，裸 `git push` 会挂起。
    推法见第 6.4 节（token 只出现在命令行里，别写进 `.git/config`，
@@ -697,6 +708,6 @@ node cdp-shot.js <outdir> http://localhost:3000/ at-rest hover entry mobile
 - [ ] `npm run build` 通过（**先把 `.next` / `out` 同盘 mv 走**，见第 6.1 节）
 - [ ] `git status` 干净
 - [ ] `git ls-remote origin main` 与本地 HEAD 一致 —— **注意 2026-09-14 时并不一致**：
-      远端停在 `22ae952`，本地已领先（数量用 `git log --oneline origin/main..HEAD` 数），
-      要推只差一个 PAT（待办第 9 条）
+      远端停在 `22ae952`，本地已领先若干提交（**先 `git fetch` 再数**，
+      直接数会报 `unknown revision`，见第 7 节），要推只差一个 PAT（待办第 9 条）
 - [ ] GitHub 能推通（若失败，第 6.4 节的三步，缺一不可）
