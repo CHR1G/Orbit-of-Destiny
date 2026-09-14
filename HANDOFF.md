@@ -1,14 +1,19 @@
 # Orbit of Destiny — 换机交接文档
 
-> 生成 2026-09-11 · 2026-09-12 在新机上复核 · **2026-09-14 再次更新到最新状态**
+> 生成 2026-09-11 · 2026-09-12 在新机上复核 · 2026-09-14 两次更新
 > 用途：换一台电脑后，照本文能把项目跑起来并接着改。
 > 仓库里还有三份正式文档：`README.md`（对外介绍）、`AGENTS.md`（技术原理与坑位）、
 > `BREAKDOWN.md`（创作脉络）。本文只讲"怎么接手"，原理细节去那三份。
 >
-> **2026-09-14 更新点**（细节在对应小节）：GitHub 已与本地同步到 `6066265`；
-> 牌面素材的授权空白已填上（AI 生成）；新增发布上线流程（第 7.4 节）；
-> 删除守卫的正确绕法改为「同盘 mv」（第 6.1 节）；GitHub 那节整段重写
-> （加速镜像已死，改用系统代理，第 6.4 节）。
+> **本文被两台机器共用**（`F:` 与 `E:`），所以正文里的绝对路径只是个例子 ——
+> 先把盘符换成你自己那台。
+>
+> **2026-09-14 更新点**（细节在对应小节）：
+> · 字体 `woff2` 建好了，1.76 MB → 98 KB，两个 404 消失（第 6.9 节）；
+> · dev server 起不来的真因是同步盘把 `.next` 也同步了、产生冲突文件（第 6.10 节）；
+> · 域名 `.link` = 公网 / `.host` = 本机预览，之前记混了（第 7.4 节）；
+> · 删除守卫的正确绕法改为「同盘 mv」（第 6.1 节）；
+> · GitHub 那节整段重写（加速镜像已死，改用系统代理，第 6.4 节）。
 
 ---
 
@@ -27,8 +32,9 @@ npm run dev
 **如果只看到空白页**，跳到第 6 节第 2 条（`allowedDevOrigins`），那是换机后最高频的问题。
 **如果 `git clone` 就失败**，八成是全局镜像重写在作怪，跳到第 6 节第 4 条。
 
-> 换机其实**不必 clone**：百度同步盘会把 `E:\BaiduSyncdisk\INTERNET-1.0\INFINITE-Space\`
-> （含 `node_modules`）整份带过去，等同步完直接 `npm run dev` 即可。
+> 换机其实**不必 clone**：百度同步盘会把
+> `<盘符>:\BaiduSyncdisk\INTERNET-1.0\INFINITE-Space\`（含 `node_modules`）
+> 整份带过去，等同步完直接 `npm run dev` 即可。
 > 只有当同步盘不可用时才走 GitHub。
 
 > **实测（2026-09-12）**：换机后 `node_modules` 已经跟着同步盘一起过来了（479 MB 完整），
@@ -65,12 +71,12 @@ npm run dev
 
 | 位置 | 版本 | 说明 |
 |---|---|---|
-| **本地工作区** `E:\BaiduSyncdisk\INTERNET-1.0\INFINITE-Space\` | 见第 7 节 | 最新、最全 |
+| **本地工作区** `<盘符>:\BaiduSyncdisk\INTERNET-1.0\INFINITE-Space\` | 见第 7 节 | 最新、最全 |
 | **GitHub** `CHR1G/Orbit-of-Destiny` | **已同步**（2026-09-14 推平） | 与本地同为 `6066265` |
 | 百度同步盘 | 同本地 | 会自动同步，但**会把你在另一台机器上删掉的文件"还原"回来** |
 
-> 盘符换过：上一台机器上这个目录是 `F:\BaiduSyncdisk\...`，当前机器是 `E:\`。
-> 所有相对路径都是仓库内的，只有这两份文档里的绝对路径需要留意。
+> **盘符**：仓库在百度同步盘上，两台机器挂上去的盘符不同（一台 `F:`、一台 `E:`）。
+> 仓库内的路径都是相对的，只有本文里出现的绝对路径需要按自己那台替换。
 
 ### 推荐做法
 
@@ -371,22 +377,22 @@ node node_modules/next/dist/bin/next build
 
 ---
 
-## 7. 当前状态（截至 2026-09-14 01:10）
+## 7. 当前状态（截至 2026-09-14 10:30，F: 那台机器）
 
 ### Git
 
 ```
-6066265  Record the deck art as AI-generated, closing the provenance gap  ← 本地 = 远程 HEAD
+3abbff7  Build the woff2 faces the @font-face blocks already expected   ← 本地 HEAD
+22ae952  Bring the handoff doc up to date for the next machine
+6066265  Record the deck art as AI-generated, closing the provenance gap
 577ad46  Generate the tarot artwork spec from the deck data
 f5f32bd  Re-encode the doll's body plate: 2,127 KB -> 88 KB
-f7c8aff  Say why the menu keeps its own boundary instead of the ring's 480
-6369c69  Turn the play-row hover light blue
-7bbed02  Sweep a silver reflection across the intro heading
-8b9b3cb  Make the lid breath legible, and derive its budget from the plates
 ```
 
-分支 `main`，**本地与远程完全一致（`6066265`），无未推送提交，工作区干净。**
-（2026-09-14 一次性推平了积压的 17 个提交。）
+分支 `main`。工作区干净，本轮改动全部已入 `3abbff7`。
+
+> `22ae952` 之后没再推过 GitHub。本机 `.git` 里**没有 `origin/main` 远程跟踪引用**
+> （从没在这里 fetch 过），要比对得先 `git fetch`，而 fetch 要过代理（见 6.4）。
 
 ### 2026-09-13 ~ 14 做了什么
 
@@ -400,47 +406,80 @@ f7c8aff  Say why the menu keeps its own boundary instead of the ring's 480
 | 牌图规格 | 新增 `tools/gen_tarot_spec.py` → `docs/tarot-art-spec.md`（79 槽位） |
 | 授权空白 | 结案：79 张牌由维护者 AI 生成（见第 5 节） |
 
-**隔离区位置**：
-`E:\BaiduSyncdisk\INTERNET-1.0\_quarantine\`（构建缓存，同盘）
-`C:\Users\NINGMEI\.workbuddy\quarantine\infinite-space-2026-09-12\`（09-12 那批垃圾与截图脚本，
-**不在同步盘上**所以不会被还原）
+**隔离区位置**（每台机器各自一份，同为各自盘符的同步盘根目录下）：
+- `F:\BaiduSyncdisk\INTERNET-1.0\_quarantine\` ← 本机（2026-09-14 起在用）
+- `E:\BaiduSyncdisk\INTERNET-1.0\_quarantine\` ← 另一台
+- `C:\Users\NINGMEI\.workbuddy\quarantine\infinite-space-2026-09-12\`（09-12 那批垃圾与截图脚本，
+  **不在同步盘上**所以不会被还原）
+
+> 注意 `_quarantine` 建在同步盘里，**它自己会跨机同步** —— 本次就在里面
+> 发现过另一台机器留下的 `out-000857`。当垃圾场可以，别当本地目录用。
+> 每台机器用各自的时间戳子目录名，避免互相覆盖。
 
 ### 未提交的改动
 
-无。工作区干净，全部已入 `6066265` 及之前提交。
+无。工作区干净，全部已入 `3abbff7`。
 
 ### 7.4 线上与发布
 
-**当前线上（最新构建）**：
+**域名有两套，别混（2026-09-14 实测更正）：**
 
-```
-https://orbit-of-destiny-65628.app.workbuddy.host/
-```
+| 形式 | 实际是什么 |
+|---|---|
+| `*.app.workbuddy.link` | **公网分享链接**，谁都能开 |
+| `*.app.workbuddy.host` | **本机预览域**，DNS 直接指向 `127.0.0.1`，由 WorkBuddy 客户端本地代理，**只有本机打得开** |
+
+发链接给人要用 `.link`；`.host` 只适合自己在本机看。之前这份文档把 `.host`
+当成"线上地址"记录了，是错的 —— 从别的机器 `fetch` 它只会失败。
+
+**两个公网链接都还活着：**
+
+| 链接 | 内容指纹 | 判定 |
+|---|---|---|
+| `https://orbit-of-destiny.app.workbuddy.link/` | 无玩偶，`/doll/body.webp` 404 | 09-11 那版，**本工作区**发的 |
+| `https://orbit-of-destiny-65628.app.workbuddy.link/` | 有 `.doll-svg`，`/doll/body.webp` 200 | 较新那版，**另一台机器**的工作区发的 |
+
+两个**都还是 `woff2` 404 的旧版本**；字体修复尚未上线。
+
+本工作区的发布标记是 `.wbapp_xfZqBnQPbJr7Zidc6lqGDi.genie`，位于
+`C:\Users\<用户>\WorkBuddy\<工作区>\`，`localDir` 指向本机的 `out/`。
+**标记文件在工作区目录里、不在同步盘上** —— 所以每台机器各自的
+`.wbapp_*.genie` 就是各自能更新的那个应用。这就是"两个链接"的由来。
 
 发布方式：内置「发布为应用」渠道（静态站），发布目录是 **`out/`**，
-不是仓库根目录。`out/` 是 `next build` 的静态导出产物（6.7 MB），
-可直接丢任意静态托管。
+不是仓库根目录。
 
-> ⚠️ **还有一个同名无后缀的旧链接 `https://orbit-of-destiny.app.workbuddy.host/`**，
-> 内容是很早的版本（玩偶还是 SVG 版，`doll/body.webp` 404）。
-> 它**不属于当前工作区**（全盘搜 `.wbapp_*.genie` 只找到当前这一个标记文件），
-> 因此从这台机器无法直接更新它，硬指定 appId 也不行（工具禁止猜 ID）。
-> 要想统一域名，需要用户在「设置—数据管理—应用」里把旧应用下线释放域名，
-> 或回到创建它的那个工作区重新发布。**接手时先问用户想怎么处理，别擅自下线。**
+> ⚠️ 从本机**只能**更新本工作区标记的那个应用（`orbit-of-destiny`）。
+> 另一个（`-65628`）属于另一台机器的工作区，硬指定 appId 也不行
+> （工具禁止猜 ID）。要合并成一个域名，需要你在「设置—数据管理—应用」里
+> 把其中一个下线释放域名，或回到创建它的那个工作区重发。
+> **接手时先问用户想怎么处理，别擅自下线。**
 
-重新发布的完整流程：
+重新发布的完整流程（本机路径是 `F:`，别照抄文档里的 `E:`）：
 
 ```bash
-# 1) 先移走缓存（防删除守卫，见 6.1），再构建
-mv .next /e/BaiduSyncdisk/INTERNET-1.0/_quarantine/next-$(date +%H%M%S)
-mv out   /e/BaiduSyncdisk/INTERNET-1.0/_quarantine/out-$(date +%H%M%S)
-npx next build
-# 2) 发布 out/ 目录（静态站），会沿用同一个分享链接、覆盖线上内容
+cd /f/BaiduSyncdisk/INTERNET-1.0/INFINITE-Space
+# 1) 先同盘移走缓存（防删除守卫，见 6.1），再构建。
+#    本机 npx 坏了（见 6.11），用 node 直调 next。
+mv .next /f/BaiduSyncdisk/INTERNET-1.0/_quarantine/next-$(date +%H%M%S)
+mv out   /f/BaiduSyncdisk/INTERNET-1.0/_quarantine/out-$(date +%H%M%S)
+node node_modules/next/dist/bin/next build
+# 2) 发布 out/ 目录（静态站），沿用同一个分享链接、覆盖线上内容
 ```
 
 ### 开发服务器
 
-写这份文档时**没有**在跑。起法：`npm run dev`（Turbopack），<http://localhost:3000>。
+写这份文档时**没有**在跑（为了跑构建先停掉了）。起法：
+
+```bash
+node node_modules/next/dist/bin/next dev -p 3000
+```
+
+正常机器上 `npm run dev` 也行；本机 `npx`/`npm` 这条路被坏掉的 shell shim
+堵住时才需要上面那条（见第 6.11 节）。
+
+**起不来先看第 6.10 节**（同步盘冲突文件把 Turbopack 缓存搞坏），
+那是本机实际遇到过的情况，症状是完全起不来、不是白屏。
 
 ---
 
@@ -451,6 +490,10 @@ npx next build
 1. **玩偶脸在手机端维持隐藏**（`@media (max-width: 639px) { .doll { display: none } }`），
    不改成缩小保留。
 2. **保持发布状态**：有新改动就重新发布，不必等某个功能定稿（2026-09-14 改）。
+   ⚠️ 但发布工具带**当轮同意闸** —— `userAskedToPublish` 只应在用户当轮
+   明确要求发布时置 `true`，跨轮不继承。所以"继续""顺手做"这类指令
+   **不足以**触发发布，得先问一句。另外本工作区只能更新自己那个应用，
+   见第 7.4 节。
 3. **牌图由维护者自己用 AI 生成并替换**， Agent 不主动催进度、不代为批量生成。
    用户说"后续我会另外更新"——接手后别去动 `public/tarot/`。
 
@@ -487,16 +530,38 @@ npx next build
 - 手机窄屏（< 500px）布局是近似的，正面卡片会往中间漂。
 - 没有测试。
 
-### 技能 / 工具在这台机器上的情况
+### 技能 / 工具在哪台机器上
 
-- 老文档提过的 `deploy-nextjs-static-cloudstudio`、`next-dev-blank-page-triage`、
-  `github-repo-download-proxy`、`push-local-project-to-github` **这台机器上依然没有**。
-  它们的流程已固化进本文与 `AGENTS.md`，照着做即可；静态发布用内置「发布为应用」渠道。
-- **有** `headless-webgl-screenshots`（用户级 skill，2026-09-13 修正过）：
-  走 CDP 截 WebGL 页面。重点是**别加 `--disable-gpu`**——加了他就只有 0.5 fps，
-  入场动画永远截不到；用 `--use-angle=d3d11` 能吃真 GPU。
+技能是**按机器装的**（在 `~/.workbuddy/skills/`，不跟同步盘走），两台不一样：
+
+| 机器 | 有的相关技能 |
+|---|---|
+| `F:`（用户 `Administrator`） | `next-dev-blank-page-triage`（带 CDP 探针）、`deploy-nextjs-static-cloudstudio`、`github-repo-download-proxy`、`push-local-project-to-github` |
+| `E:`（用户 `NINGMEI`） | `headless-webgl-screenshots`（走 CDP 截 WebGL 页面，2026-09-13 修正过） |
+
+两边都没有的功能，流程已固化进本文与 `AGENTS.md`，照着做即可；
+静态发布一律用内置「发布为应用」渠道。
+
+**本机（`F:`）可直接用的探针**，在
+`~/.workbuddy/skills/next-dev-blank-page-triage/scripts/`：
+
+| 脚本 | 用途 |
+|---|---|
+| `cdp-pipe-probe.mjs` | 页面状态（`hasCanvas`、行数、opacity、title）+ 全部 console 报错 |
+| `cdp-click-shot.mjs` | 点选择器后再截图；`selector` 可以是 `@x,y` 坐标，这是点 canvas 内元素的唯一办法 |
+| `cdp-measure.mjs` | 真实视口 + 元素 box + 计算字号 |
+| `cdp-crop.mjs` | 裁剪单个元素并放大，判断 1px 级细节 |
+| `png-edge-probe.mjs` | 自己解 PNG（zlib + 反滤波，零依赖）扫四边亮度，判断有没有接缝 |
+
+走 `--remote-debugging-pipe` 而不是 `--remote-debugging-port`，因为沙箱不放行调试端口。
+
+- **别加 `--disable-gpu`**：加了只有约 0.5 fps，入场动画永远截不到；
+  用 `--use-angle=d3d11` 吃真 GPU。
 - 测量首屏体积时记得 `Network.setCacheDisabled` + `clearBrowserCache`，
   否则复用 profile 缓存会把 2.1 MB 报成 0.2 KB。
+- **中文全角字宽恒为 1em，`measureText` 分不出字体** —— 要验证某个字体是否
+  真的在出字，只能比栅格（画到 canvas 取 ImageData 比像素），或者拿
+  "不存在的字体"当对照组。本次核字体覆盖就是这么做出来的。
 
 ---
 
