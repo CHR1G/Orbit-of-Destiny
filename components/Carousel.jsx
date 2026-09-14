@@ -13,6 +13,7 @@ import {
 import { buildAtlas } from "./ring/atlas";
 import CardDetail from "./CardDetail";
 import DollFace from "./DollFace";
+import MetallicPaint from "./MetallicPaint";
 import OracleFlow from "./OracleFlow";
 import TarotVortex, { vortexPointer } from "./TarotVortex";
 import { createMeta } from "./ring/meta";
@@ -37,6 +38,45 @@ import {
 
 // The fan starts fractionally into the spread so the seed reads first.
 const FAN_START = 0.06;
+
+// The mask the play menu's metal is painted with.
+//
+// MetallicPaint reads two things out of a mask: alpha says where the metal
+// appears, and red is a depth field — the result of flooding inward from the
+// mask's shape — that the shader uses to decide where the metal reads thick. On
+// a logo, both of those are the logo.
+//
+// A capsule has no such shape. The silhouette here is CSS (`border-radius` on
+// .play-metal), so the mask only has to supply the field, and a *solved* field is
+// the wrong one. The flood fill produces a bowl, and the shader multiplies its
+// pattern down wherever that bowl is high, which lays a broad flat pool with a
+// rim across the middle of every button. The pool's edge is the level set
+// dp = 0.5 — a closed ellipse inside the capsule — and that is the artefact: at 1x
+// it reads as a stain, at 4x as a hole punched through the metal. The first three
+// passes of this feature shipped it.
+//
+// So the field is a constant, and 0.5 rather than 0 for a reason. `edgeFactor` —
+// the term that gates the noise putting the current in the surface — is
+// `smoothstep(0., .5, dp) * smoothstep(1., .5, dp)`, a bump peaking at exactly
+// 0.5. A flat 0.5 holds that term at full strength across the whole capsule,
+// which is where the flow comes from, while every dp-driven gradient that could
+// draw a contour disappears.
+//
+// 64x64 is generous: the field is one number, and the shader samples it with
+// linear filtering. Handing the mask over ready-made also skips the flood fill —
+// 200 iterations over the mask, per instance, on a page with five of them.
+const METAL_FIELD = (() => {
+  const size = 64;
+  const data = new Uint8ClampedArray(size * size * 4);
+  for (let i = 0; i < size * size; i++) {
+    const p = i * 4;
+    data[p] = 128; // depth: dp = 0.5 everywhere — see above
+    data[p + 1] = 128; // the shader never reads these two
+    data[p + 2] = 128;
+    data[p + 3] = 255; // shape: 1 everywhere, so the silhouette stays CSS's job
+  }
+  return { width: size, height: size, data };
+})();
 
 const blankTexture = () => {
   const t = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
@@ -1723,7 +1763,7 @@ export default function Carousel() {
   // attribute rather than handed in as a callback: `openPlayRef` may only
   // be read from an event handler, never while rendering.
   const playRows = () =>
-    PLAYS.map((p) => {
+    PLAYS.map((p, i) => {
       const on = play === p.id;
       return (
         <li
@@ -1739,6 +1779,114 @@ export default function Carousel() {
           }`}
           aria-current={on ? "true" : undefined}
         >
+          {/* 液态金属 — the capsule's body.
+              This is the row's material now, not a decoration on top of it. The
+              white glass gradient and its backdrop-filter are still declared in
+              CSS but have become the no-WebGL fallback: the canvas paints over
+              them at alpha 1, so the refraction has nothing left to sample and
+              the filter is switched off rather than left running for nothing.
+
+              The wrapper exists to clip. A canvas is a rectangle and the row is
+              a capsule, so `border-radius: inherit` + `overflow: hidden` here
+              is what gives the metal its silhouette — the shape is deliberately
+              not in the mask, see METAL_FIELD above.
+
+              z-index 0 puts it in the band the row's two pseudo-elements already
+              share: `::before` is the outer bezel and paints first, this paints
+              over it, and `::after` — the hover wash — paints last of the three.
+              The halo, the rim light and the sheen sit a step above at 1, and
+              the disc, the label and the tag a step above that at 2, so nothing
+              about the type stack changes.
+
+              Five instances of the same mask, five different seeds: identical
+              seeds would put five identical sheets of metal in a column, and the
+              eye reads that as wallpaper rather than as five objects. */}
+          <span className="play-metal" aria-hidden="true">
+            <MetallicPaint
+              // The mask, handed over built rather than fetched — see METAL_FIELD
+              // at the top of this file for why it is a constant field and why
+              // that is what keeps the middle of the capsule from going flat.
+              imageData={METAL_FIELD}
+              seed={42 + i * 17}
+              // 6, against a published 4, and this turned out to be the knob that
+              // decides what the effect *is* rather than how loud it is. Swept on
+              // the scratch page at 2, 3, 4, 5.5, 6, 8 and 10, against a capsule
+              // of the menu's own 4.6:1 aspect: at 2 and 3 the metal is a pair of
+              // soft gradients with one broad flat pool between them, at 10 it is
+              // brushed metal too fine to read as liquid, and 5.5-6 is where the
+              // bands are wide enough to read as folds and frequent enough to
+              // read as a surface.
+              scale={6}
+              // Both under the published values (0.01 / 0.015), and the reason is
+              // a defect the first pass shipped and the screenshot caught. A
+              // band's width in this shader is `blur`, and the colour-separation
+              // offset is `refraction * chromaticSpread`; at the published
+              // 0.01 * 2 the offset is 0.02 against a band of 0.015, so the red,
+              // green and blue channels resolve onto *different bands* and the
+              // middle of every capsule goes oil-slick — a wide magenta-and-green
+              // smear with no relationship to the metal. At 0.005 * 1.2 the
+              // offset is a third of a band, which is what a fringe is meant to
+              // be.
+              refraction={0.005}
+              // Band width, and it is worth being precise that this is a *width*
+              // and not a softness: at 0.008 the shader's own crease stopped
+              // being a ramp and became a line, and a closed line around a darker
+              // interior is exactly what a hole looks like.
+              blur={0.014}
+              liquid={0.7}
+              // Slow. It is the only endless motion in the column and it has to
+              // read as a material with a current in it, not as a video.
+              speed={0.18}
+              // The legibility pair, and between them they are the only thing
+              // standing between this effect and unreadable type — because the
+              // shader's dark stop is `darkColor * (2 - brightness)`, and at the
+              // published brightness of 2 that stop is *pure black whatever
+              // darkColor says*. That is what makes the effect dramatic on a logo
+              // and what would put black bands under #0a0a0a glyphs. At 1.28 the
+              // factor is 0.72 and the darkest band lands near 4:1 against the
+              // label; the text-shadow in globals.css covers the bands that do
+              // cross a glyph.
+              brightness={1.28}
+              contrast={0.85}
+              lightColor="#ffffff"
+              darkColor="#85a0be"
+              // Sharper than the published 1: the bands are the whole read, and
+              // a wide gradient between two metals is a gradient, not a fold.
+              patternSharpness={1.2}
+              waveAmplitude={0.9}
+              noiseScale={0.45}
+              // 1.2 against a published 2. The figure itself matters less than
+              // its ratio to `refraction` above.
+              chromaticSpread={1.2}
+              // Lifts the pattern at the rim, which is most of what makes the ends
+              // read as curved metal rather than as a gradient that got cut off.
+              fresnel={1.15}
+              // `distortion` is the noise that puts a current in the surface; 0.45
+              // against a published 1, because the bands still have to be readable
+              // at 34px tall and noise is what breaks a band up.
+              //
+              // `contour` is 0, and not because it looked wrong. It warps the
+              // pattern *along the shape boundary*, which it reads out of the
+              // depth field — and this mask's field is a constant. With nothing to
+              // warp it reduces to two multiplications by a number, so it is
+              // written as the nothing it is rather than left at a figure that
+              // implies it is doing something.
+              distortion={0.45}
+              contour={0}
+              angle={0}
+              // The page's palette rather than a new colour: a weak colour-burn
+              // toward the lavender the ambient field already blooms behind the
+              // menu.
+              tintColor="#dbe4ff"
+              mouseAnimation={false}
+              // 128 CSS px of buffer for an element about 160x34. The canvas is
+              // square and CSS stretches it — see the globals.css block, where the
+              // stretch is also what fits the depth field to the capsule. The
+              // published 1000 would be roughly 60x the fill rate, five times
+              // over every frame, on a page already running a three.js scene.
+              resolution={128}
+            />
+          </span>
           {/* Three passes of light, outermost first.
               .play-halo and the .play-halo-core inside it are the travelling
               glow that orbits the capsule and never stops. Two elements rather

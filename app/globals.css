@@ -1664,28 +1664,34 @@ body[data-tone] .element-serif {
   }
 }
 
-/* The row is a pane of the same glass as .liquid-btn, not a piece of
-   hardware. It used to be an opaque white-to-grey gradient lifted from a
-   skeuomorphic switch, which read as sheet metal: correct for a row that
-   was pretending to be a physical toggle, wrong for the homepage once the
-   rest of the app had settled on frosted glass.
+/* The body is liquid metal now — a MetallicPaint canvas in .play-metal, which
+   is the one child that decides what this row is made of.
 
-   The recipe is deliberately the same one .liquid-btn uses — translucent
-   white gradient over blur + saturate, inset rim for wall thickness, and
-   the shared #glass-refract displacement so the card ring visibly kinks
-   where it passes under the edge. Keeping one recipe in two places is the
-   point: a glass button that refracts differently from the panel next to
-   it reads as two materials.
+   What that changed and what it did not. Everything above the body is
+   untouched: the bezel on ::before, the rim-light pass, the orbiting halo, the
+   pointer's sheen, the graphite disc and the two label lines all still do
+   exactly what they did, and they are what the row has been for three rounds.
+   What changed is the plate underneath them, and two consequences follow from
+   it rather than being choices:
 
-   The one real trade-off is legibility against transmission, and the body
-   sits at 0.87 -> 0.64 down its height to settle it. It was 0.94 -> 0.78,
-   which read as a confident plate and was the right call while the backdrop
-   was a flat #fafafa — with nothing behind the glass, opacity cost nothing.
-   Now that there IS a backdrop (see .play-ambient) that opacity is the thing
-   stopping it from arriving: measured, the field moved the capsules' interiors
-   by less than 2/255. The label still clears contrast comfortably, because
-   the worst case behind it is a pastel at half strength over white and the
-   ink is #0a0a0a, and it keeps its hard white top-light underneath. */
+   1. The backdrop-filter is gone. It was doing real work — the row really was
+      sampling the ambient field behind the menu and refracting it through
+      #glass-refract — but an opaque canvas now covers that backdrop, so the
+      blur and the displacement would be compositing a region nobody can see,
+      on an element that repaints every frame. Removing it is not a compromise;
+      it is the same picture for less.
+
+   2. The ink stays #0a0a0a, and that is a constraint on the metal rather than
+      on the type. The shader's dark stop is `darkColor * (2 - brightness)`, so
+      at the published brightness of 2 it is pure black whatever darkColor says
+      — which is what makes the effect dramatic on a logo and would put black
+      bands straight under the glyphs here. The light blue-grey (#85a0be) and
+      brightness 1.28 together put the darkest band at roughly 4:1 against the
+      label — see the props in Carousel.jsx, where that pair and contrast are
+      documented as the legibility knobs they are. A dark chrome would have
+      looked better and been unreadable.
+
+   The fallback background below is what a browser with no webgl2 gets. */
 .play-row {
   position: relative;
   /* Horizontal capsule now, not a stacked plate. The row used to be a
@@ -1716,15 +1722,23 @@ body[data-tone] .element-serif {
      cold glass laid over it. The plate is deliberately close to the page
      value: at rest the row is almost a texture, and the colour only arrives
      on hover (see ::after). */
-  border: 1px solid rgba(214, 200, 188, 0.5);
+  /* White, not the warm 米白 it was. The rim used to be tinted to match a
+     cream plate laid on a cream page; the plate is metal now, and a warm rule
+     round a cool surface reads as a bruise. A near-white hairline is also what
+     chrome actually has at its edge. */
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  /* The fallback, and only the fallback. The metal canvas covers this at alpha
+     1, so in a browser with webgl2 it is never seen — it is here so that one
+     without it gets a surface rather than a hole with text floating in it.
+     Deliberately a cool white now rather than the warm cream: if it ever does
+     show, it should at least be the same family as the chrome it is standing
+     in for. */
   background: linear-gradient(
     180deg,
-    rgba(250, 246, 240, 0.74) 0%,
-    rgba(247, 241, 234, 0.62) 40%,
-    rgba(243, 235, 226, 0.5) 100%
+    rgba(250, 252, 255, 0.94) 0%,
+    rgba(238, 244, 252, 0.9) 44%,
+    rgba(220, 231, 246, 0.88) 100%
   );
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  backdrop-filter: blur(18px) saturate(150%);
   box-shadow:
     /* Top lip: broad and warm-white, the way the View pill's highlight
        reads as a band rather than a 1px rule. */
@@ -1734,11 +1748,21 @@ body[data-tone] .element-serif {
     inset 0 0 0 1px rgba(255, 250, 244, 0.5),
     0 1px 2px rgba(120, 100, 86, 0.05),
     0 8px 20px -12px rgba(120, 100, 86, 0.28);
-  /* Raised from 0.72. The row used to sit almost flat until the pointer
-     arrived, which was right for a list of switches and wrong for this: the
-     capsule now carries an always-on orbit and a lit disc, and at 0.72 both
-     were being dimmed by the row's own opacity rather than by their own. */
-  opacity: 0.94;
+  /* Full, where it has been 0.94 since the row carried a plate. That 6% was
+     being taken off a translucent surface to keep it quiet against a flat page;
+     it is now being taken off an opaque one, i.e. off the whole button. */
+  opacity: 1;
+  /* And this is load-bearing rather than defensive.
+     The halo, the rim-light pass and the sheen are all `mix-blend-mode: screen`,
+     and they have always blended against the row rather than against the page —
+     not by intent but as a side effect of `opacity: 0.94`, which made the row a
+     group and therefore their backdrop. Raising the opacity to 1 would drop that
+     group and silently re-point all three at the WebGL canvas and the doll
+     behind the menu, which is a different picture. `isolation: isolate` keeps
+     the group and drops the dimming, and it also matters more than it used to:
+     the metal canvas is now the thing they are screening onto, which is exactly
+     how light should sit on a metal surface — added to it, not painted over it. */
+  isolation: isolate;
   transition:
     opacity 0.18s ease,
     /* Deliberately NOT `transform`. That property now carries the tilt, and
@@ -1755,6 +1779,64 @@ body[data-tone] .element-serif {
     border-color 0.28s ease,
     box-shadow 0.24s ease;
 }
+/* 液态金属 — the button's body. The props are in Carousel.jsx, and so is the
+ * mask; the reason it is a constant field rather than a capsule is there too.
+ *
+ * The wrapper does two jobs a bare canvas cannot.
+ *
+ * It clips. A canvas is a rectangle and this row is a capsule whose width is
+ * decided by its own label, so there is no fixed silhouette to bake into a
+ * mask — five rows, five different outlines. `border-radius: inherit` +
+ * `overflow: hidden` gives every row an exact copy of its own outline, for
+ * nothing, at whatever width its label happens to need.
+ *
+ * And it stretches. The buffer is square (the mask is square, and the shader's
+ * fA() maps a square mask onto a square buffer one to one), so CSS scaling it
+ * into a 170x30 box is what fits the depth field to the row: the field's own
+ * border, which the solver ramps to zero, lands on the capsule's edge, and the
+ * shader's contour and edge-contrast terms read the boundary they were written
+ * for. Square is also the honest buffer here — at 30px tall nothing finer than
+ * about 128px survives, so a 170x30-native buffer would spend most of its
+ * pixels on a dimension nobody can see, five times a frame, on a page already
+ * running a three.js scene.
+ *
+ * `object-fit: fill` is required and is not what the component ships. Its own
+ * CSS uses `object-fit: contain`, which is right for a logo and wrong for this:
+ * a square canvas contained inside a 5.7:1 box would letterbox into a square
+ * in the middle of the capsule. The child combinator is deliberate —
+ * MetallicPaint.css is imported by the component, so which of the two files
+ * lands last is not something this rule should have to depend on. */
+.play-metal {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  transition: filter 0.34s ease;
+}
+.play-metal > .paint-container {
+  object-fit: fill;
+}
+/* The metal answers the pointer.
+ *
+ * Brightness only, and that is the whole rule. The plate already tilts, lifts,
+ * presses and receives a specular; a sixth kind of motion on the same 30px of
+ * surface is one too many. `filter` rather than an overlay on purpose — it
+ * changes what the metal *is* rather than laying something over it, which is
+ * the difference between chrome catching light and a pale rectangle appearing
+ * on top of it. */
+.play-row:hover .play-metal,
+.play-row:focus-visible .play-metal {
+  /* Contrast as much as brightness, and that pairing is the whole point: a metal
+     surface that catches the light does not get paler, it gets more itself —
+     the brights go up and the darks stay down. Brightness alone was tried first
+     and it turned the hovered capsule milky, because a light chrome has almost no
+     headroom left above it and every unit of brightness came out of the contrast
+     the metal is made of. */
+  filter: brightness(1.05) contrast(1.06) saturate(1.05);
+}
+
 /* Rim gather + dispersion: light piles up toward the edge and the walls
    split warm/cool. Same optical signature as .liquid-btn::before, at a
    smaller radius because the row is smaller than the pill.
@@ -2053,12 +2135,18 @@ body[data-tone] .element-serif {
   border-radius: inherit;
   pointer-events: none;
   z-index: 0;
+  /* The same cool wash, at roughly a third of the strength it carried as glass.
+     At 0.95 it was a plate of colour standing in for light the glass could not
+     transmit. The metal transmits nothing either — but it is already a lit
+     surface, so the hover has to read as a change *in* that surface rather than
+     as a lid laid over it. This is the number to move if the hover stops
+     registering; nothing else in the row depends on it. */
   background: linear-gradient(
     0deg,
-    rgba(186, 214, 240, 0.95) 0%,
-    rgba(196, 220, 243, 0.72) 30%,
-    rgba(208, 227, 245, 0.32) 62%,
-    rgba(208, 227, 245, 0) 100%
+    rgba(196, 222, 246, 0.3) 0%,
+    rgba(204, 226, 246, 0.19) 30%,
+    rgba(212, 231, 248, 0.07) 62%,
+    rgba(212, 231, 248, 0) 100%
   );
   -webkit-mask-image: linear-gradient(0deg, #fff, transparent);
   mask-image: linear-gradient(0deg, #fff, transparent);
@@ -2140,9 +2228,24 @@ body[data-tone] .element-serif {
     0 1px 2px rgba(120, 100, 86, 0.05),
     0 8px 18px -14px rgba(120, 100, 86, 0.26);
 }
-/* No glow plate on the selected row — see above. */
+/* The selection signal, moved from behind the body to in front of it.
+ *
+ * It used to be the row's own background — the flat #ececec well described
+ * above — and the opaque metal now covers that completely, so the column would
+ * have lost the one standing state it has. Same colour, same intent, same
+ * refusal to glow: re-expressed as a plate on top of the material instead of
+ * underneath it. No mask this time, where the hover has one — the selected
+ * state is deliberately flat edge to edge, and the hover is deliberately not. */
 .play-row.is-on::after {
-  opacity: 0;
+  opacity: 1;
+  -webkit-mask-image: none;
+  mask-image: none;
+  background: linear-gradient(
+    180deg,
+    rgba(232, 232, 232, 0.66) 0%,
+    rgba(236, 236, 236, 0.6) 54%,
+    rgba(228, 228, 228, 0.66) 100%
+  );
 }
 .play-row.is-on::before {
   mix-blend-mode: normal;
@@ -2189,12 +2292,15 @@ body[data-tone] .element-serif {
 .play-row.is-on:focus-visible .play-level {
   color: #2f2b27;
 }
-@supports (backdrop-filter: url("#glass-refract")) {
-  .play-row {
-    -webkit-backdrop-filter: url("#glass-refract") blur(14px) saturate(180%);
-    backdrop-filter: url("#glass-refract") blur(14px) saturate(180%);
-  }
-}
+/* There was an @supports block here upgrading .play-row's backdrop-filter to
+   url("#glass-refract") blur(14px) saturate(180%). It is gone rather than
+   changed, and the reason is worth one line because it will otherwise look
+   like an oversight: the metal canvas is opaque and sits over the row's own
+   backdrop, so both the blur and the displacement would be sampling and
+   bending a region that no pixel on screen can show. The refraction may come
+   back the day the body is translucent again; it is not wanted now.
+   .liquid-btn keeps its own copy of the upgrade, and .play-desc keeps one too —
+   that panel is still real glass and still sits over the ring. */
 
 /* The specular the pointer drags across the pane.
  *
@@ -2219,16 +2325,28 @@ body[data-tone] .element-serif {
   pointer-events: none;
   z-index: 1;
   mix-blend-mode: screen;
+  /* A third of what the glass carried (0.5 / 0.34 → 0.15 / 0.1), and for a
+     reason that only shows up now the plate is opaque: `screen` adds to what is
+     underneath, and what is underneath used to be a translucent white plate —
+     light on light, where the highlight had somewhere to go. Chrome is already
+     near the top of the range, so the same highlight lands on 1.0 and the
+     hovered capsule turns milky rather than lit. Half alpha was tried first and
+     was still enough to read as a wash, because the metal's own brights already
+     sit at 26% of the capsule's pixels — measured, not guessed, with the canvas
+     parked: see .probe/cdp-hover-lum.mjs. A third reads as the same event on a
+     material that has no headroom left. The radii came down with it (7.5em/4.2em
+     → 5.5em/3.2em and 4em/3em → 3em/2.2em) so the highlight stays a specular
+     rather than covering the whole face. */
   background:
     radial-gradient(
-      7.5em 4.6em at calc(var(--gx, 0.5) * 100%) calc(var(--gy, 0.5) * 100%),
-      rgba(255, 255, 255, 0.5) 0%,
-      rgba(255, 255, 255, 0.16) 40%,
+      5.5em 3.2em at calc(var(--gx, 0.5) * 100%) calc(var(--gy, 0.5) * 100%),
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(255, 255, 255, 0.05) 40%,
       rgba(255, 255, 255, 0) 72%
     ),
     radial-gradient(
-      4.2em 3em at calc(var(--gx, 0.5) * 100% - 5%) calc(var(--gy, 0.5) * 100% + 4%),
-      rgba(226, 240, 255, 0.34) 0%,
+      3em 2.2em at calc(var(--gx, 0.5) * 100% - 5%) calc(var(--gy, 0.5) * 100% + 4%),
+      rgba(226, 240, 255, 0.1) 0%,
       rgba(226, 240, 255, 0) 66%
     );
   opacity: 0;
@@ -2304,6 +2422,17 @@ body[data-tone] .element-serif {
   display: block;
   white-space: nowrap;
   line-height: 1.2;
+  /* The bands under the label move, so the label cannot lean on whatever
+     happens to be behind it at this instant. A soft white halo is the cheapest
+     honest fix: it disappears entirely on a light band, and on the dark ones it
+     is the difference between a glyph and a glyph that has been eaten.
+     Deliberately not a plate — a plate would be visible as a plate, and the
+     reason the metal is here at all is that the surface should stay whole.
+     Two stops rather than one: a single tight shadow reads as a blurry glyph,
+     whereas a tight one over a wide faint one reads as separation. */
+  text-shadow:
+    0 0 4px rgba(255, 255, 255, 0.72),
+    0 0 10px rgba(255, 255, 255, 0.42);
 }
 /* Struck from the silver gradient in ring/sigil.jsx, so these stay flat
    strokes — no colour, no fill, nothing that can drift with the OS emoji
