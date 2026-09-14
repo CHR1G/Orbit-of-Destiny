@@ -432,14 +432,26 @@ f5f32bd  Re-encode the doll's body plate: 2,127 KB -> 88 KB
 发链接给人要用 `.link`；`.host` 只适合自己在本机看。之前这份文档把 `.host`
 当成"线上地址"记录了，是错的 —— 从别的机器 `fetch` 它只会失败。
 
-**两个公网链接都还活着：**
+**两个公网链接（2026-09-14 重新发布后）：**
 
-| 链接 | 内容指纹 | 判定 |
-|---|---|---|
-| `https://orbit-of-destiny.app.workbuddy.link/` | 无玩偶，`/doll/body.webp` 404 | 09-11 那版，**本工作区**发的 |
-| `https://orbit-of-destiny-65628.app.workbuddy.link/` | 有 `.doll-svg`，`/doll/body.webp` 200 | 较新那版，**另一台机器**的工作区发的 |
+| 链接 | `index.html` sha | 内容 | 判定 |
+|---|---|---|---|
+| `orbit-of-destiny.app.workbuddy.link` | `f4a8c350106c` | 有玩偶、`woff2` **200** | **当前最新构建**（本工作区发的） |
+| `orbit-of-destiny-65628.app.workbuddy.link` | `243bcecc443e` | 有玩偶、`woff2` 404 | 旧一版（另一台机器的工作区发的） |
 
-两个**都还是 `woff2` 404 的旧版本**；字体修复尚未上线。
+**干净域名那个现在是最新的** —— 想收束成一条链接的话，保留
+`orbit-of-destiny`、把 `-65628` 下线即可。
+
+> ⚠️ **探测这类站点必须加 cache-busting。** 不带 `?cb=<随机>` 时 CDN 会回
+> 上一次缓存的 HTML：本次就因此读到 20605 字节的旧页，误判"新内容没上线"，
+> 而真实的 21577 字节新页其实早就在了。判断"发布有没有生效"**只能靠 sha 比对**
+> （本地 `out/index.html` vs 线上），看字节数或截图都不可靠。
+
+> ⚠️ 本次发布工具**回了报错，但实际生效了**。报的是
+> `应用预留域名 ... 未绑定到本次发布环境，本次发布已停止`，可线上
+> `index.html` 的 sha 与本地完全一致、`/fonts/*.woff2` 的字节数与 SHA1
+> 也和本地逐字节相同。**别只信工具回执，要回线上取证。**
+> 重新发布前也不必先清缓存目录 —— `out/` 是直接上传的。
 
 本工作区的发布标记是 `.wbapp_xfZqBnQPbJr7Zidc6lqGDi.genie`，位于
 `C:\Users\<用户>\WorkBuddy\<工作区>\`，`localDir` 指向本机的 `out/`。
@@ -504,16 +516,17 @@ node node_modules/next/dist/bin/next dev -p 3000
 6. ~~字体优化~~ → 已做，见第 6.9 节：新增 `tools/subset_fonts.py`，
    细线体 1.76 MB → **98 KB**，两个 404 消失，浏览器实测零漏字。
    **遗留约束：改中文文案后要重跑该脚本。**
+7. ~~`gui.js` 的 `textFont` 下拉选不到默认值~~ → 已补上 `TheNightWatch`。
+8. ~~字体修复上线~~ → 已发布，线上 `woff2` 的字节与 SHA1 与本地一致（第 7.4 节）。
 
 ### 待做的工程项（按性价比排）
 
-7. `public/tarot/` 3.0 MB：图集把每张牌降采样到 320×573 单元格，
+9. **`public/tarot/` 3.0 MB**：图集把每张牌降采样到 320×573 单元格，
    源图按这个尺寸裁一遍能省很多（**换图时顺手做，见 `docs/tarot-art-spec.md`**）。
-8. `components/ring/gui.js` 的 `textFont` 下拉只列了 `["Satoshi","Geist"]`，
-   而 `params.textFont` 是 `"TheNightWatch"` —— 选任何一项都是降级。
-9. **两个线上链接合并成一个**（第 7.4 节）：等用户决定是下线旧应用释放域名，
-   还是回旧工作区重发。
-10. **在百度网盘里排除 `.next` / `out` / `node_modules`**（第 6.10 节）。
+10. **收束这两条线上链接**：现在 `orbit-of-destiny` 是最新的，
+    `-65628` 是旧的。保留前者、把后者下线即可（第 7.4 节）。
+    `-65628` 属于另一台机器的工作区，要在那台机器或「设置—数据管理—应用」里下线。
+11. **在百度网盘里排除 `.next` / `out` / `node_modules`**（第 6.10 节）。
     这不是代码问题，但它是 dev server 挂掉的根因，且会反复发作。
 
 ### 需要真机复核的（数值上都对，但只有眼睛能确认）
