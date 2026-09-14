@@ -1,6 +1,6 @@
 # Orbit of Destiny — 换机交接文档
 
-> 生成 2026-09-11 · 2026-09-12 在新机上复核 · 2026-09-14 两次更新
+> 生成 2026-09-11 · 2026-09-12 在新机上复核 · 2026-09-14 三次更新
 > 用途：换一台电脑后，照本文能把项目跑起来并接着改。
 > 仓库里还有三份正式文档：`README.md`（对外介绍）、`AGENTS.md`（技术原理与坑位）、
 > `BREAKDOWN.md`（创作脉络）。本文只讲"怎么接手"，原理细节去那三份。
@@ -13,7 +13,10 @@
 > · dev server 起不来的真因是同步盘把 `.next` 也同步了、产生冲突文件（第 6.10 节）；
 > · 域名 `.link` = 公网 / `.host` = 本机预览，之前记混了（第 7.4 节）；
 > · 删除守卫的正确绕法改为「同盘 mv」（第 6.1 节）；
-> · GitHub 那节整段重写（加速镜像已死，改用系统代理，第 6.4 节）。
+> · GitHub 那节整段重写（加速镜像已死，改用系统代理，第 6.4 节）；
+> · 字体修复**已上线并逐字节复验**（第 7.4 节，含"工具报错但实际生效"的坑）；
+> · **远端实际停在 `22ae952`，本地领先 3 个提交未推**（第 7 节 / 待办第 9 条）；
+> · 文档里把"21577 字符"误记成字节数，已更正（第 7.4 节）。
 
 ---
 
@@ -72,7 +75,7 @@ npm run dev
 | 位置 | 版本 | 说明 |
 |---|---|---|
 | **本地工作区** `<盘符>:\BaiduSyncdisk\INTERNET-1.0\INFINITE-Space\` | 见第 7 节 | 最新、最全 |
-| **GitHub** `CHR1G/Orbit-of-Destiny` | **已同步**（2026-09-14 推平） | 与本地同为 `6066265` |
+| **GitHub** `CHR1G/Orbit-of-Destiny` | **落后** | 远端停在 `22ae952`，本地已到 `25341bb`（差 3 个提交，未推；见第 7 节与待办第 9 条） |
 | 百度同步盘 | 同本地 | 会自动同步，但**会把你在另一台机器上删掉的文件"还原"回来** |
 
 > **盘符**：仓库在百度同步盘上，两台机器挂上去的盘符不同（一台 `F:`、一台 `E:`）。
@@ -377,22 +380,36 @@ node node_modules/next/dist/bin/next build
 
 ---
 
-## 7. 当前状态（截至 2026-09-14 10:30，F: 那台机器）
+## 7. 当前状态（截至 2026-09-14 15:50，F: 那台机器）
 
 ### Git
 
 ```
-3abbff7  Build the woff2 faces the @font-face blocks already expected   ← 本地 HEAD
-22ae952  Bring the handoff doc up to date for the next machine
+25341bb  Record the font fix as live, and how it was nearly mis-verified   ← 本地 HEAD
+09a64ca  Correct the handoff doc for the F: machine and record this round's findings
+3abbff7  Build the woff2 faces the @font-face blocks already expected
+22ae952  Bring the handoff doc up to date for the next machine             ← origin/main（已确认）
 6066265  Record the deck art as AI-generated, closing the provenance gap
-577ad46  Generate the tarot artwork spec from the deck data
-f5f32bd  Re-encode the doll's body plate: 2,127 KB -> 88 KB
 ```
 
-分支 `main`。工作区干净，本轮改动全部已入 `3abbff7`。
+分支 `main`。工作区干净，本轮改动全部已入 `25341bb`。
 
-> `22ae952` 之后没再推过 GitHub。本机 `.git` 里**没有 `origin/main` 远程跟踪引用**
-> （从没在这里 fetch 过），要比对得先 `git fetch`，而 fetch 要过代理（见 6.4）。
+**远端落后 3 个提交。** 2026-09-14 实测（不是照抄旧记录）：
+
+```
+git -c http.proxy=http://127.0.0.1:7897 -c https.proxy=http://127.0.0.1:7897 \
+  ls-remote origin main
+→ 22ae952cc7031d88edd4cc80dc035e83030942db  refs/heads/main
+```
+
+即 `3abbff7` / `09a64ca` / `25341bb` 三个提交**尚未推**。代理本身是通的
+（`ls-remote` 走通了，说明第 6.4 节那套代理地址仍然有效），缺的只是**凭据** ——
+`credential.helper` 是 `manager`，但里面没有 github.com 的登录态，所以
+**直接 `git push` 会挂起等弹窗**（详见第 8 节待办）。要推得先拿到一个
+classic PAT（勾 `repo`）。
+
+> 早先本文档写"远端已推平到 `6066265`"，与实测不符 —— 实际远端停在
+> `22ae952`。判断远程位置**一律以 `ls-remote` 实测为准**，别沿用旧记录。
 
 ### 2026-09-13 ~ 14 做了什么
 
@@ -418,7 +435,7 @@ f5f32bd  Re-encode the doll's body plate: 2,127 KB -> 88 KB
 
 ### 未提交的改动
 
-无。工作区干净，全部已入 `3abbff7`。
+无。工作区干净，全部已入 `25341bb`（本轮只动了 `HANDOFF.md` 本身）。
 
 ### 7.4 线上与发布
 
@@ -434,7 +451,7 @@ f5f32bd  Re-encode the doll's body plate: 2,127 KB -> 88 KB
 
 **两个公网链接（2026-09-14 重新发布后）：**
 
-| 链接 | `index.html` sha | 内容 | 判定 |
+| 链接 | `index.html` sha1 | 内容 | 判定 |
 |---|---|---|---|
 | `orbit-of-destiny.app.workbuddy.link` | `f4a8c350106c` | 有玩偶、`woff2` **200** | **当前最新构建**（本工作区发的） |
 | `orbit-of-destiny-65628.app.workbuddy.link` | `243bcecc443e` | 有玩偶、`woff2` 404 | 旧一版（另一台机器的工作区发的） |
@@ -442,10 +459,31 @@ f5f32bd  Re-encode the doll's body plate: 2,127 KB -> 88 KB
 **干净域名那个现在是最新的** —— 想收束成一条链接的话，保留
 `orbit-of-destiny`、把 `-65628` 下线即可。
 
+2026-09-14 复验（三条独立证据，全部指向"已生效"）：
+
+| 取证对象 | 本地 | 干净域名 | 判定 |
+|---|---|---|---|
+| `index.html` | 21935 B / sha1 `f4a8c350106c` | 21935 B / sha1 `f4a8c350106c` | 逐字节一致 |
+| `/fonts/PangMenZhengDao-XiXianTi.woff2` | 99856 B / SHA1 `bef3a754016684b2` | 99856 B / SHA1 同 | 逐字节一致 |
+| `/fonts/TheNightWatch.woff2` | 4444 B / SHA1 `654f746d1935dad0` | 4444 B / SHA1 同 | 逐字节一致 |
+
+再往上追一层：线上那个 CSS 分片（`/_next/static/chunks/0zd1kjenmbx5_.css`，
+52449 B）里的 `@font-face` 确实是
+`src:local(庞门正道细线体),…,url(/fonts/PangMenZhengDao-XiXianTi.woff2)format("woff2"),…`
+——**`local()` 在构建后仍然保留**（5 处），所以"本地看不到 404、线上才 404"
+这套解释是对的，不是构建把 `local()` 优化掉了。两条 `url()` 现在都是 200，
+访客的回落链变成"命中本地字体 → 否则拿 woff2（98 KB）→ 再不行才 TTF（1.76 MB）"。
+
+> ⚠️ **字节数 vs 字符数，别记混。** 这个 `index.html` 是
+> **21577 字符 / 21935 字节**（UTF-8 下多出 358 字节，中文页头）。本文档早先
+> 把字符数当字节数写成了"21577 字节"，复验时一度以为线上换了个版本 ——
+> 同 sha1 就是同内容，长度对不上先怀疑自己的量法。
+
 > ⚠️ **探测这类站点必须加 cache-busting。** 不带 `?cb=<随机>` 时 CDN 会回
 > 上一次缓存的 HTML：本次就因此读到 20605 字节的旧页，误判"新内容没上线"，
-> 而真实的 21577 字节新页其实早就在了。判断"发布有没有生效"**只能靠 sha 比对**
-> （本地 `out/index.html` vs 线上），看字节数或截图都不可靠。
+> 而真实的新页其实早就在了。判断"发布有没有生效"**只能靠 sha 比对**
+> （本地 `out/index.html` vs 线上，且两次要用同一个哈希算法），
+> 看字节数或截图都不可靠。
 
 > ⚠️ 本次发布工具**回了报错，但实际生效了**。报的是
 > `应用预留域名 ... 未绑定到本次发布环境，本次发布已停止`，可线上
@@ -481,7 +519,9 @@ node node_modules/next/dist/bin/next build
 
 ### 开发服务器
 
-写这份文档时**没有**在跑（为了跑构建先停掉了）。起法：
+2026-09-14 10:30 写这份文档时**没有**在跑（为了跑构建先停掉了）；
+**15:50 复验时是跑着的**（`http://127.0.0.1:3000` 返回 200，标题 `Orbit of Destiny`）。
+起法：
 
 ```bash
 node node_modules/next/dist/bin/next dev -p 3000
@@ -511,30 +551,42 @@ node node_modules/next/dist/bin/next dev -p 3000
 
 ### 2026-09-14 已结案
 
-4. ~~恢复 GitHub 推送~~ → 已推平到 `6066265`（方法见第 6.4 节）。
+4. ~~恢复 GitHub 推送~~ → 当时推到 `6066265`。**但 2026-09-14 实测远端停在
+   `22ae952`**，本地又领先了 3 个提交 —— 见下面第 9 条，这活儿又回来了。
 5. ~~填上牌面素材的授权空白~~ → 已写明 AI 生成（见第 5 节）。
 6. ~~字体优化~~ → 已做，见第 6.9 节：新增 `tools/subset_fonts.py`，
    细线体 1.76 MB → **98 KB**，两个 404 消失，浏览器实测零漏字。
    **遗留约束：改中文文案后要重跑该脚本。**
 7. ~~`gui.js` 的 `textFont` 下拉选不到默认值~~ → 已补上 `TheNightWatch`。
-8. ~~字体修复上线~~ → 已发布，线上 `woff2` 的字节与 SHA1 与本地一致（第 7.4 节）。
+8. ~~字体修复上线~~ → 已发布。2026-09-14 复验：`index.html` 与两个 `woff2`
+   都和本地**逐字节一致**（第 7.4 节），线上 CSS 里的 `url()` 也确实回到 200。
 
 ### 待做的工程项（按性价比排）
 
-9. **`public/tarot/` 3.0 MB**：图集把每张牌降采样到 320×573 单元格，
-   源图按这个尺寸裁一遍能省很多（**换图时顺手做，见 `docs/tarot-art-spec.md`**）。
-10. **收束这两条线上链接**：现在 `orbit-of-destiny` 是最新的，
-    `-65628` 是旧的。保留前者、把后者下线即可（第 7.4 节）。
-    `-65628` 属于另一台机器的工作区，要在那台机器或「设置—数据管理—应用」里下线。
-11. **在百度网盘里排除 `.next` / `out` / `node_modules`**（第 6.10 节）。
+9. **把 3 个提交推上 GitHub**（唯一能靠命令做完、只差凭据的一项）。
+   远端 `22ae952` ← 本地 `25341bb`，待推 `3abbff7` / `09a64ca` / `25341bb`。
+   代理已验证可用，**缺的只是一个 classic PAT（勾 `repo`）**；
+   `credential.helper=manager` 里没有 github.com 登录态，裸 `git push` 会挂起。
+   推法见第 6.4 节（token 只出现在命令行里，别写进 `.git/config`，
+   推完提醒用户立即撤销）。
+10. **`public/tarot/` 3.0 MB**：图集把每张牌降采样到 320×573 单元格，
+    源图按这个尺寸裁一遍能省很多（**换图时顺手做，见 `docs/tarot-art-spec.md`**）。
+11. **收束这两条线上链接**：`orbit-of-destiny` 是最新的，`-65628` 是旧的。
+    保留前者、把后者下线即可（第 7.4 节）。`-65628` 属于另一台机器的工作区，
+    要在那台机器或「设置—数据管理—应用」里下线。
+    ⚠️ **只下线 `-65628` 就够，不要"释放干净域名再重发"。**
+    实测干净域名已经指向最新构建，再走一遍释放/重发不但没必要，还可能
+    把现有链接弄没（下线应用可能连带删掉分享链接），或者只是生成一条
+    带新后缀的链接、把链接问题变得更碎。
+12. **在百度网盘里排除 `.next` / `out` / `node_modules`**（第 6.10 节）。
     这不是代码问题，但它是 dev server 挂掉的根因，且会反复发作。
 
 ### 需要真机复核的（数值上都对，但只有眼睛能确认）
 
-10. **眼皮呼吸幅度**：`DollFace.jsx` 的 `LID_BREATH.amp`（左 7.2 / 右 6.6 px）
+13. **眼皮呼吸幅度**：`DollFace.jsx` 的 `LID_BREATH.amp`（左 7.2 / 右 6.6 px）
     是按像素算出来的，不是看出来的。真机上嫌小/嫌夸张就直接调这个值，
     `LID_TRAVEL` 有钳制兜底（左下 24/30、右下 24/8 px）。
-11. **银色扫光**：band 宽度与周期在 `params.js`（`textSweepBand` / `textSweepPeriod`）。
+14. **银色扫光**：band 宽度与周期在 `params.js`（`textSweepBand` / `textSweepPeriod`）。
 
 ### 已知但暂不修的功能缺口
 
@@ -629,5 +681,7 @@ node cdp-shot.js <outdir> http://localhost:3000/ at-rest hover entry mobile
 - [ ] 标题文字有银色扫光扫过
 - [ ] 控制台无红色报错
 - [ ] `npm run build` 通过（**先把 `.next` / `out` 同盘 mv 走**，见第 6.1 节）
-- [ ] `git status` 干净，且与 `origin/main` 一致
+- [ ] `git status` 干净
+- [ ] `git ls-remote origin main` 与本地 HEAD 一致 —— **注意 2026-09-14 时并不一致**：
+      远端 `22ae952`，本地 `25341bb`，差 3 个提交（待办第 9 条，只差 PAT）
 - [ ] GitHub 能推通（若失败，第 6.4 节的三步，缺一不可）
