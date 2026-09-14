@@ -563,8 +563,8 @@ node node_modules/next/dist/bin/next dev -p 3000
 
 ### 待做的工程项（按性价比排）
 
-9. **把 3 个提交推上 GitHub**（唯一能靠命令做完、只差凭据的一项）。
-   远端 `22ae952` ← 本地 `25341bb`，待推 `3abbff7` / `09a64ca` / `25341bb`。
+9. **把 4 个提交推上 GitHub**（唯一能靠命令做完、只差凭据的一项）。
+   远端 `22ae952` ← 本地 `4bcac06`，待推 `3abbff7` / `09a64ca` / `25341bb` / `4bcac06`。
    代理已验证可用，**缺的只是一个 classic PAT（勾 `repo`）**；
    `credential.helper=manager` 里没有 github.com 登录态，裸 `git push` 会挂起。
    推法见第 6.4 节（token 只出现在命令行里，别写进 `.git/config`，
