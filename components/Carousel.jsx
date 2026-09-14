@@ -1766,10 +1766,12 @@ export default function Carousel() {
           <span className="play-sheen" aria-hidden="true" />
           {/* The sigil used to ride inside .play-name, so it sat on the label's
               baseline and its size was whatever the text line gave it. It now
-              has its own lens: a dark glass disc that the mark is centred in
-              by the disc's own flex box, so the two cannot drift apart. The
-              dark disc is what the silver strokes need — they were drawn to
-              sit on a pale plate and would wash out on the capsule alone. */}
+              has its own disc: the mark is centred by the disc's own flex box,
+              so the two cannot drift apart, and it gets a ground of its own
+              rather than the capsule's flat grey. That ground is silver now —
+              the strokes are a dark under-line carrying a silver gradient, and
+              the pair reads as a bevel on a silver disc where on plain pale
+              glass it would just go soft. */}
           <span className="play-orb" aria-hidden="true">
             <Sigil name={p.sigil} className="play-sigil" />
           </span>

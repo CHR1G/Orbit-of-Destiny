@@ -1751,14 +1751,23 @@ body[data-tone] .element-serif {
 }
 /* The disc the sigil sits in.
  *
- * Dark, and that is the one decision worth arguing. Every mark in
- * ring/sigil.jsx is drawn twice — a dark under-stroke with a silver gradient
- * riding on it — and that pair was cut to sit on a pale plate. Lifted onto the
- * capsule unchanged the silver lands in the same value range as the body and
- * the symbol goes soft. A graphite lens gives the pair the contrast it was
- * drawn for, and it is the only dark object in the menu, which is what makes
- * the disc read as a bead seated in the glass rather than a hole punched
- * through it. */
+ * Polished silver, which reverses the graphite lens this carried while the body
+ * was metal. The old argument for dark was contrast: the marks in ring/sigil.jsx
+ * are drawn twice — a #4f596b under-stroke with a silver gradient riding on it
+ * — and on a pale plate the silver half goes soft. But that pair was cut for
+ * silver-on-silver all along (see the note at the top of sigil.jsx): the
+ * under-stroke is what guarantees the outline everywhere, and the gradient over
+ * it is read as a bevel rather than as ink. What graphite was really buying was
+ * "the only dark object in the menu", and against the pale grey body it now
+ * reads as a hole punched through the glass. Silver keeps the bead — the
+ * top-left specular and the shade crescent at the far side are what make this a
+ * sphere rather than a circle — while seated *in* the material instead of
+ * behind it.
+ *
+ * The banding is the whole trick. A single white-to-grey fade reads as grey
+ * plastic; alternating light and dark stops across a diagonal is what the eye
+ * accepts as metal, and these are the same alternation the sigil's own Metal
+ * gradient uses, so the mark and its ground look cut from one ingot. */
 .play-orb {
   flex: none;
   display: flex;
@@ -1770,32 +1779,57 @@ body[data-tone] .element-serif {
   /* Clips the sweeper below to the disc. */
   overflow: hidden;
   background:
-    /* Fixed specular, top-left — the bead in the reference is mostly rim, and
-       this is the half of it that does not move. */
+    /* Fixed specular, top-left — the half of the highlight that does not move.
+       Nearly opaque white: on a light disc a soft specular is just a lighter
+       white and stops registering as a light source. */
     radial-gradient(
       120% 120% at 32% 24%,
-      rgba(255, 255, 255, 0.34) 0%,
-      rgba(255, 255, 255, 0) 46%
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(255, 255, 255, 0) 52%
     ),
-    /* Body: graphite, lifting a step toward the top so the disc has an
-       up-side instead of reading as a flat hole. */
-    linear-gradient(168deg, #43464e 0%, #2b2e34 44%, #191b1f 100%);
+    /* The far-side shade. A white disc with no shaded edge has no volume at
+       all, and this crescent is what turns the circle into a sphere. */
+    radial-gradient(
+      96% 96% at 74% 84%,
+      rgba(255, 255, 255, 0) 42%,
+      rgba(126, 139, 160, 0.42) 100%
+    ),
+    /* Body: silver, banded on a diagonal — white, a cool step down, back up,
+       the deepest band two-thirds along, and a last step at the far corner. */
+    linear-gradient(
+      168deg,
+      #ffffff 0%,
+      #e6ebf3 22%,
+      #fbfcfe 40%,
+      #c4cddb 62%,
+      #eef2f8 78%,
+      #a9b4c6 100%
+    );
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.42),
-    inset 0 1px 1px rgba(255, 255, 255, 0.55),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.5),
-    /* A short, tight seat. The first pass used a wide dark shadow and it read
-       as a smudge on the pale glass rather than as the disc sitting in it. */
-    0 1px 2px rgba(20, 24, 15, 0.26);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.92),
+    inset 0 1px 1px rgba(255, 255, 255, 1),
+    inset 0 -2px 3px rgba(120, 133, 154, 0.45),
+    /* A short, tight seat, and it stays short for the reason it always did: a
+       wide dark shadow reads as a smudge on the pale glass rather than as the
+       disc sitting in it. Cold now, to match the body it falls on. */
+    0 1px 2px rgba(58, 68, 88, 0.22);
 }
 /* 液态流光 — the sheen inside the disc, always moving.
  *
  * Two bands of unequal width rather than one. A single band reads as a
  * highlight going round; uneven bands at a different period from the rim's
  * (7.6s against 6.5s) drift in and out of phase with it, which is what makes
- * the pair read as liquid rather than as two clocks. `screen` so it adds light
- * to the graphite instead of painting grey over it, and a slight blur so the
- * bands have no hard edge to catch the eye as it turns. */
+ * the pair read as liquid rather than as two clocks, and a slight blur so the
+ * bands have no hard edge to catch the eye as it turns.
+ *
+ * The blend mode is the part that had to change with the body. `screen` only
+ * adds light, which was right over graphite and is nearly inert over silver:
+ * white over an already-white disc has nowhere to go, and the sweep would keep
+ * running while becoming invisible — motion that is no longer on screen is the
+ * one failure a screenshot of a still frame cannot catch. `hard-light` takes
+ * the band's own value as the light it implies, so one conic can carry both a
+ * highlight *and* a shade band, and the disc gets the two things polished metal
+ * actually does as it turns. */
 .play-orb::before {
   content: "";
   position: absolute;
@@ -1807,17 +1841,18 @@ body[data-tone] .element-serif {
   background: conic-gradient(
     from 0deg,
     rgba(255, 255, 255, 0) 0deg,
-    rgba(255, 255, 255, 0.06) 26deg,
-    rgba(255, 255, 255, 0.62) 58deg,
-    rgba(226, 239, 255, 0.30) 84deg,
+    rgba(255, 255, 255, 0.3) 26deg,
+    rgba(255, 255, 255, 0.95) 58deg,
+    rgba(226, 239, 255, 0.45) 84deg,
     rgba(255, 255, 255, 0) 116deg,
+    rgba(84, 96, 116, 0.32) 150deg,
     rgba(255, 255, 255, 0) 186deg,
-    rgba(255, 238, 214, 0.34) 226deg,
-    rgba(255, 255, 255, 0.86) 262deg,
-    rgba(255, 255, 255, 0.10) 296deg,
+    rgba(214, 236, 255, 0.42) 226deg,
+    rgba(255, 255, 255, 1) 262deg,
+    rgba(255, 255, 255, 0.16) 296deg,
     rgba(255, 255, 255, 0) 330deg
   );
-  mix-blend-mode: screen;
+  mix-blend-mode: hard-light;
   /* No blur here. An earlier pass blurred this by 0.04em to soften the bands
      and it read as haze sitting on the lens rather than as light in it — the
      bands are already soft enough by construction, since a conic gradient's
@@ -2125,16 +2160,20 @@ body[data-tone] .element-serif {
 }
 /* Struck from the silver gradient in ring/sigil.jsx, so these stay flat
    strokes — no colour, no fill, nothing that can drift with the OS emoji
-   font. They sit on the dark disc of .play-orb now rather than directly on
-   the pale plate, which is the ground that pair was cut for. */
+   font. They sit on the disc of .play-orb, which is the ground that pair was
+   cut for. */
 .play-sigil {
   width: 1.3em;
   height: 1.3em;
   flex: none;
   opacity: 0.96;
-  /* A soft dark seat. The old 1px white under-lip was the pressed edge on
-     pale metal; on graphite the same line reads as a halo of grit. */
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
+  /* A soft seat, and on silver it is doing more work than it did on graphite.
+     The mark's own top stroke is silver, so against a silver disc the dark
+     under-stroke is what carries the outline and this shadow is what keeps the
+     whole mark from dissolving into its ground. Cool, not black, and lighter
+     than it was: a hard black line under a light disc reads as a ring of grit
+     rather than as a shadow. */
+  filter: drop-shadow(0 1px 1px rgba(58, 68, 88, 0.42));
   transition:
     opacity 0.2s ease,
     filter 0.2s ease;
@@ -2144,12 +2183,15 @@ body[data-tone] .element-serif {
 }
 .play-row.is-on .play-sigil {
   opacity: 1;
-  /* Same "this one is selected" signal the old rule carried, re-expressed:
-     a warm glow off the disc instead of a white lip, which only read against
-     the pale plate. */
+  /* Same "this one is selected" signal, re-expressed for a light disc. The
+     warm halo this used to carry only ever read off a graphite lens — over
+     silver it lands as a stain, and warm is the one hue the palette dropped
+     when the body went grey. A faint cyan bloom takes over, which is the
+     page's existing accent (it is the same light blue as the ring's lit edge)
+     and is the one colour that still shows as light against white. */
   filter:
-    drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55))
-    drop-shadow(0 0 4px rgba(255, 196, 120, 0.85));
+    drop-shadow(0 1px 1px rgba(58, 68, 88, 0.42))
+    drop-shadow(0 0 3px rgba(0, 229, 255, 0.6));
 }
 .play-level {
   /* Pinned right, so all five tags line up in a column at the capsule ends
@@ -2219,20 +2261,6 @@ body[data-tone] .element-serif {
   transform: translateX(0) translateY(-50%);
 }
 /* The escape hatch, and it has to live HERE rather than in the file's main
-   reduced-motion block up near the top.
- *
- * That block sets `animation: none` on the things it wants stopped, and this
- * file is unlayered with no !important in the menu — so a rule declared later
- * wins at equal specificity, and the three sweeps below are all declared
- * above. Putting the override up there first time round produced a rule that
- * matched, computed, and did nothing: `animationName` still read
- * `play-orb-flow` under an emulated `prefers-reduced-motion: reduce`. Measured,
- * not assumed.
- *
- * Nothing changes shape or disappears here. The disc keeps its fixed specular,
- * the capsule keeps its bezel and rim-light pass and its tinted bloom — only
- * the three endless turns stop, leaving the same objects lit and still. */
-/* The escape hatch, and it has to live HERE rather than in the file's main
  * reduced-motion block up near the top.
  *
  * That block sets `animation: none` on the things it wants stopped, and this
@@ -2243,8 +2271,8 @@ body[data-tone] .element-serif {
  * an emulated `prefers-reduced-motion: reduce`. Measured, not assumed.
  *
  * Nothing changes shape or disappears here. The ring keeps its band and its
- * colours and simply stops turning; the disc keeps its fixed specular. Same
- * objects, lit and still. */
+ * colours and simply stops turning; the disc keeps its fixed specular and its
+ * banding, and loses only the sweep. Same objects, lit and still. */
 @media (prefers-reduced-motion: reduce) {
   .play-border::before,
   .play-orb::before {
