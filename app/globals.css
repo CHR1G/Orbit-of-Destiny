@@ -1557,6 +1557,113 @@ body[data-tone] .element-serif {
   list-style: none;
 }
 
+/* The backdrop the menu's glass refracts — see the div in Carousel.jsx for
+ * why it exists at all.
+ *
+ * Four soft blooms off the page's own palette (the doll's pale blue and warm
+ * cream, the deck's powder pink and lilac), blurred past the point where any
+ * of them reads as a shape. The mask is the load-bearing part: without it the
+ * field is a rectangle, and a rectangle of colour sitting in a white page
+ * shows its own corners no matter how hard it is blurred. Feathered, it has
+ * no edge to find.
+ *
+ * The drift is 52s because it must never be caught moving. At this blur the
+ * eye reads the field as ambient light rather than as an object, and an
+ * ambient light that visibly travels becomes an animation the visitor is
+ * watching instead of the page.
+ *
+ * It stops under prefers-reduced-motion but does NOT disappear — see the
+ * note in that block. It is what the glass is made of, not a motion. */
+.play-ambient {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1;
+  top: -8vh;
+  right: -6vw;
+  width: 40vw;
+  height: 96vh;
+  background:
+    /* Every bloom is wider than the gap between the anchors, so they overlap
+       across the whole panel and no one of them can be picked out.
+       That is not padding — a first pass with tighter blooms left the pale
+       blue one reading as a distinct circle sitting in the middle of the page,
+       because a 180px blob under a 26px blur keeps its own edge.
+       The overlaps do a second job the big soft version cannot: where two hues
+       cross, the gradient steepens, and a steep gradient is the one thing the
+       rim's displacement can actually be seen to bend. So the blue and the
+       rose are placed so that their crossover falls across the column. */
+    radial-gradient(
+      58% 48% at 26% 30%,
+      rgba(158, 196, 242, 0.7) 0%,
+      rgba(158, 196, 242, 0) 70%
+    ),
+    radial-gradient(
+      54% 44% at 76% 20%,
+      rgba(246, 198, 211, 0.58) 0%,
+      rgba(246, 198, 211, 0) 68%
+    ),
+    radial-gradient(
+      56% 48% at 80% 66%,
+      rgba(204, 186, 240, 0.52) 0%,
+      rgba(204, 186, 240, 0) 70%
+    ),
+    /* Was a warm cream and it was the one colour in the set that did not
+       belong: the page's palette is ice blue, powder pink and lavender off the
+       doll and the deck, and there is no orange anywhere in it. The first pass
+       made the whole column read as peach, which is a warmer page than this
+       one is. Kept as a rose-grey, which gives the lower third something to do
+       without introducing a hue the artwork never uses. */
+    radial-gradient(
+      50% 42% at 34% 84%,
+      rgba(244, 224, 220, 0.4) 0%,
+      rgba(244, 224, 220, 0) 70%
+    ),
+    radial-gradient(
+      48% 40% at 54% 50%,
+      rgba(214, 232, 255, 0.44) 0%,
+      rgba(214, 232, 255, 0) 72%
+    );
+  /* 26px, not the 44 this started at. Blur is the enemy of the very thing the
+     field exists for: the displacement map ramps hard only in the outer fifth
+     of each capsule, and it can only bend structure that is there to bend. A
+     field blurred past the 9px displacement scale is locally flat at every
+     point the glass samples, so the lens has nothing to act on and the frosted
+     surface renders as a plain tint — which is exactly what the first pass
+     measured (mean |d| 2/255 across the menu, all of it in the gaps between
+     capsules and none of it inside them). At 26px the blooms keep their
+     softness as shapes while still holding gradients steep enough for the
+     rim to pull colour across. */
+  filter: blur(26px);
+  -webkit-mask-image: radial-gradient(
+    68% 66% at 46% 48%,
+    #000 0%,
+    #000 40%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: radial-gradient(
+    68% 66% at 46% 48%,
+    #000 0%,
+    #000 40%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  animation: play-ambient-drift 52s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes play-ambient-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(-2.2vw, 2vh, 0) scale(1.06);
+  }
+  66% {
+    transform: translate3d(1.5vw, -1.7vh, 0) scale(0.97);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
 /* The row is a pane of the same glass as .liquid-btn, not a piece of
    hardware. It used to be an opaque white-to-grey gradient lifted from a
    skeuomorphic switch, which read as sheet metal: correct for a row that
@@ -1570,12 +1677,15 @@ body[data-tone] .element-serif {
    point: a glass button that refracts differently from the panel next to
    it reads as two materials.
 
-   The one real trade-off, and it is a reversal of the old comment: the
-   plate is now translucent, so the ring's plates show through and the row
-   is busier than it was. That is the whole point of glass, but it costs
-   legibility, so the body sits at a higher white opacity than .liquid-btn
-   (0.72 -> 0.62 at the bottom) and the label keeps a hard white top-light
-   underneath it. */
+   The one real trade-off is legibility against transmission, and the body
+   sits at 0.87 -> 0.64 down its height to settle it. It was 0.94 -> 0.78,
+   which read as a confident plate and was the right call while the backdrop
+   was a flat #fafafa — with nothing behind the glass, opacity cost nothing.
+   Now that there IS a backdrop (see .play-ambient) that opacity is the thing
+   stopping it from arriving: measured, the field moved the capsules' interiors
+   by less than 2/255. The label still clears contrast comfortably, because
+   the worst case behind it is a pastel at half strength over white and the
+   ink is #0a0a0a, and it keeps its hard white top-light underneath. */
 .play-row {
   position: relative;
   /* Horizontal capsule now, not a stacked plate. The row used to be a
@@ -1609,9 +1719,9 @@ body[data-tone] .element-serif {
   border: 1px solid rgba(214, 200, 188, 0.5);
   background: linear-gradient(
     180deg,
-    rgba(248, 243, 237, 0.94) 0%,
-    rgba(245, 239, 232, 0.86) 40%,
-    rgba(240, 232, 224, 0.78) 100%
+    rgba(250, 246, 240, 0.74) 0%,
+    rgba(247, 241, 234, 0.62) 40%,
+    rgba(243, 235, 226, 0.5) 100%
   );
   -webkit-backdrop-filter: blur(18px) saturate(150%);
   backdrop-filter: blur(18px) saturate(150%);
@@ -1631,7 +1741,16 @@ body[data-tone] .element-serif {
   opacity: 0.94;
   transition:
     opacity 0.18s ease,
-    transform 0.18s ease,
+    /* Deliberately NOT `transform`. That property now carries the tilt, and
+       the tilt has to track the pointer with no interpolation at all or the
+       pane visibly lags the cursor by the length of its own transition. So
+       the lift and the press were moved onto `translate` and `scale`, which
+       are separate properties and can therefore keep their own slower,
+       springier curves without dragging the tilt along with them.
+       The overshoot in that curve is what makes the release read as elastic
+       rather than as a fade back to rest. */
+    translate 0.44s cubic-bezier(0.22, 1.32, 0.36, 1),
+    scale 0.32s cubic-bezier(0.22, 1.32, 0.36, 1),
     background 0.28s ease,
     border-color 0.28s ease,
     box-shadow 0.24s ease;
@@ -1961,13 +2080,21 @@ body[data-tone] .element-serif {
 .play-row:hover,
 .play-row:focus-visible {
   opacity: 1;
-  transform: translateY(-1px);
+  /* `translate`, not `transform:` — transform belongs to the tilt now, and
+     writing it here would overwrite the pointer's angles on every hover. */
+  translate: 0 -1px;
   border-color: rgba(168, 198, 228, 0.9);
+  /* Kept translucent on hover rather than milking up to 0.99 as it used to.
+     A surface that turns opaque at the exact moment the visitor leans in
+     hides the refracted colour whenever anyone is actually looking at it,
+     which is the inverse of what a hover is for. It still brightens — the
+     cool light and the sheen are what carry the state — it just does it
+     without closing the glass. */
   background: linear-gradient(
     180deg,
-    rgba(250, 252, 255, 0.99) 0%,
-    rgba(245, 249, 254, 0.94) 40%,
-    rgba(238, 245, 253, 0.9) 100%
+    rgba(250, 252, 255, 0.87) 0%,
+    rgba(245, 249, 254, 0.8) 40%,
+    rgba(238, 245, 253, 0.72) 100%
   );
   box-shadow:
     inset 0 1.5px 0 rgba(255, 255, 255, 1),
@@ -2067,6 +2194,101 @@ body[data-tone] .element-serif {
     -webkit-backdrop-filter: url("#glass-refract") blur(14px) saturate(180%);
     backdrop-filter: url("#glass-refract") blur(14px) saturate(180%);
   }
+}
+
+/* The specular the pointer drags across the pane.
+ *
+ * Two radials at slightly different anchors rather than one. A single radial
+ * is a spotlight: it is obviously a circle of white moving over a surface. The
+ * second, smaller, cooler one trailing 5%/4% behind turns the pair into a
+ * smear of light that changes shape as it travels, which is the difference
+ * between a highlight painted on the glass and light moving inside it.
+ *
+ * `screen` so it adds to the plate instead of greying it, and it only exists
+ * on hover — at rest the row's light is the orbit and the disc, and a third
+ * light sitting in the middle of every capsule would just be a smudge.
+ *
+ * The anchors read from --gx/--gy, which Carousel.jsx writes onto the row
+ * itself; the 0.5 fallbacks mean the rule is valid before the pointer has ever
+ * arrived, so the glass does not need a hover to have a defined highlight. */
+.play-sheen {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(
+      7.5em 4.6em at calc(var(--gx, 0.5) * 100%) calc(var(--gy, 0.5) * 100%),
+      rgba(255, 255, 255, 0.5) 0%,
+      rgba(255, 255, 255, 0.16) 40%,
+      rgba(255, 255, 255, 0) 72%
+    ),
+    radial-gradient(
+      4.2em 3em at calc(var(--gx, 0.5) * 100% - 5%) calc(var(--gy, 0.5) * 100% + 4%),
+      rgba(226, 240, 255, 0.34) 0%,
+      rgba(226, 240, 255, 0) 66%
+    );
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+.play-row:hover .play-sheen,
+.play-row:focus-visible .play-sheen {
+  opacity: 1;
+}
+
+/* The pane responds to where the pointer is, not only to whether it is here.
+ *
+ * Behind no-preference rather than merely toned down: the tilt IS the motion,
+ * so there is no reduced version of it worth keeping — the sheen below keeps
+ * its reveal and loses only its tracking, which is the honest split.
+ *
+ * `transform` carries angles and nothing else, which is why the lift and the
+ * press live on `translate`/`scale` — see the transition on .play-row. */
+@media (prefers-reduced-motion: no-preference) {
+  /* Scoped to the hover rather than sitting on .play-row unconditionally.
+     A transform that resolves to zero rotation is still a transform: it puts
+     the row in a 3D rendering context permanently, and a 3D context renders
+     text without subpixel antialiasing. Five labels are the entire content of
+     this column, so the tilt is paid for only while the pointer is actually
+     on the row and the resting column is left exactly as it was. */
+  .play-row:hover,
+  .play-row:focus-visible {
+    transform: perspective(540px) rotateX(var(--rx, 0deg))
+      rotateY(var(--ry, 0deg));
+  }
+  /* The disc lags the pane by a hair, and that offset is the whole read: a
+     mark printed on the surface would move with the glass, and a bead
+     suspended inside it does not quite keep up. Small enough that it is never
+     seen as movement, only felt as depth. Gated the same way and for the same
+     reason — translate3d is a 3D context too. */
+  .play-row:hover .play-orb,
+  .play-row:focus-visible .play-orb {
+    transform: translate3d(
+      calc((var(--gx, 0.5) - 0.5) * 3.4px),
+      calc((var(--gy, 0.5) - 0.5) * 2.6px),
+      0
+    );
+  }
+}
+
+/* The press.
+ *
+ * Shorter and firmer than the release curve above on purpose. Glass gives
+ * immediately under a finger and springs back when it is let go, and the
+ * asymmetry between the two is most of that read — a symmetric press feels
+ * like a button being animated, an asymmetric one feels like a material being
+ * pushed. The squish is 1.5%: past about 3% the label starts to look like it
+ * is being resized rather than the pane being compressed. */
+.play-row:active {
+  scale: 0.985;
+  transition:
+    translate 0.09s ease,
+    scale 0.09s ease,
+    background 0.09s ease,
+    box-shadow 0.09s ease;
 }
 
 .play-copy {
@@ -2194,6 +2416,35 @@ body[data-tone] .element-serif {
   .play-halo-core::before,
   .play-orb::before {
     animation: none;
+  }
+  /* The ambient field stops drifting but deliberately does NOT disappear.
+     It is the material the glass is made of, not an animation — removing it
+     would change what every capsule is made of in order to suppress a motion
+     too slow to notice. Held still it is simply light in the room. */
+  .play-ambient {
+    animation: none;
+  }
+  /* The sheen keeps its reveal and loses only its tracking: pinned to a fixed
+     spot, so hovering still lights the glass, but the highlight no longer
+     slides after the cursor. */
+  .play-sheen {
+    background: radial-gradient(
+      7.5em 4.6em at 50% 34%,
+      rgba(255, 255, 255, 0.5) 0%,
+      rgba(255, 255, 255, 0.16) 40%,
+      rgba(255, 255, 255, 0) 72%
+    );
+  }
+  /* The tilt is absent rather than flattened — it lives in a no-preference
+     query, so it never applies here at all. That leaves `translate`/`scale`
+     as pure decoration, and decoration should not move: the spring is dropped
+     so a press still registers but snaps instead of bouncing. */
+  .play-row {
+    transition:
+      opacity 0.18s ease,
+      background 0.28s ease,
+      border-color 0.28s ease,
+      box-shadow 0.24s ease;
   }
 }
 
@@ -2347,9 +2598,18 @@ body[data-tone] .element-serif {
   .play-sheet .play-copy {
     grid-column: 2;
   }
+  /* No travelling specular in here. The sheet only exists below 640px, where
+     the pointer is a finger — there is no position to track, and the hover a
+     tap leaves behind is a highlight the visitor has no way to clear. The tap
+     keeps the squash from the base :active rule, which needs no pointer. */
+  .play-sheet .play-sheen {
+    display: none;
+  }
   .play-sheet .play-row:active {
     opacity: 1;
-    transform: translateY(-1px);
+    /* `translate`, not `transform:` — transform carries the tilt now, and
+       writing it here would flatten the pane. */
+    translate: 0 -1px;
   }
   /* Static again. The absolute placement, the lift and the glass all belong
      to a floating brief and mean nothing once it is back in the flow. */

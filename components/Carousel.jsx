@@ -1682,6 +1682,41 @@ export default function Carousel() {
     // the focused card.
   }, []);
 
+  // Where the pointer is, in the row's own coordinates — the input to every
+  // moving highlight on the glass.
+  //
+  // Written straight onto the element's inline style rather than held in state.
+  // This fires on every frame the pointer moves, and routing it through a
+  // setState would re-render the whole scene — five rows, the ring, the doll —
+  // to slide one highlight a few pixels. The element is the storage; React
+  // never needs to know the pointer moved.
+  //
+  // `pointerType` is checked rather than the event name because touch and pen
+  // are not merely uninteresting here, they are wrong: a stylus dragged across
+  // the column would leave a frozen hotspot behind it, and the hover a touch
+  // leaves behind is a state the user has no way to clear. Reduced motion is
+  // handled in CSS, which owns every rule that consumes these values — so this
+  // keeps writing them and nothing reads them.
+  const glideRow = (e) => {
+    if (e.pointerType !== "mouse") return;
+    const el = e.currentTarget;
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const gx = (e.clientX - r.left) / r.width;
+    const gy = (e.clientY - r.top) / r.height;
+    el.style.setProperty("--gx", gx.toFixed(4));
+    el.style.setProperty("--gy", gy.toFixed(4));
+    // The tilt. Small on purpose: this capsule is about 30px tall, and past
+    // roughly 5 degrees the disc stops reading as a bead suspended in the
+    // pane and starts reading as a sticker sliding off it.
+    el.style.setProperty("--ry", ((gx - 0.5) * 5).toFixed(3) + "deg");
+    el.style.setProperty("--rx", ((0.5 - gy) * 3.5).toFixed(3) + "deg");
+  };
+  const restRow = (e) => {
+    const el = e.currentTarget;
+    for (const k of ["--gx", "--gy", "--rx", "--ry"]) el.style.removeProperty(k);
+  };
+
   // Both menus list the same five ways in, so one builder keeps them from
   // drifting — the desktop column and the phone sheet have to agree on
   // names, levels, sigils and descriptions. The click is written as a JSX
@@ -1697,6 +1732,8 @@ export default function Carousel() {
           // stays pointer-events-none so the gaps between rows never
           // steal a drag from the canvas underneath.
           onClick={() => openPlayRef.current(p.id)}
+          onPointerMove={glideRow}
+          onPointerLeave={restRow}
           className={`play-row pointer-events-auto cursor-pointer${
             on ? " is-on" : ""
           }`}
@@ -1717,6 +1754,14 @@ export default function Carousel() {
             <span className="play-halo-core" />
           </span>
           <span className="play-rim" aria-hidden="true" />
+          {/* The travelling specular. Where .play-rim is the light that is on
+              the glass whether or not anyone is here, this is the light the
+              pointer drags across it — the only thing on the row that answers
+              the cursor's position rather than merely its presence. Two
+              radials at a slight offset rather than one: the offset is what
+              makes the highlight read as light bending inside the pane
+              instead of as a spotlight painted on top of it. */}
+          <span className="play-sheen" aria-hidden="true" />
           {/* The sigil used to ride inside .play-name, so it sat on the label's
               baseline and its size was whatever the text line gave it. It now
               has its own lens: a dark glass disc that the mark is centred in
@@ -1788,6 +1833,33 @@ export default function Carousel() {
       >
         {playRows()}
       </ul>
+
+      {/* The light the menu refracts.
+
+          The frosted surface on .play-row is real and always has been — it
+          computes to url(#glass-refract) blur(14px) saturate(180%). What it
+          never had was anything to bend. The column hangs over the right-hand
+          third of the page, and that region is body { background: #fafafa }
+          and nothing else: the doll and the deck are both to the left of it.
+          Blurring a flat field returns the same field and displacing it
+          returns the same field, so the most expensive part of the glass was
+          faithfully rendering an identical white pixel. Putting a hard stripe
+          pattern behind the column confirms it — the stripes blurred and
+          kinked at the capsule rims exactly as they should. The optics were
+          never broken, only starved.
+
+          So this supplies the missing backdrop. It is deliberately the page's
+          own palette rather than a new colour, and low-saturation and heavily
+          blurred for the same reason .play-row's body is nearly opaque: it
+          has to be light in the room, not a panel behind the buttons.
+
+          z-index 1 rather than a place in the flow — below the column's z-10
+          so it lands inside the rows' backdrop instead of on top of them, and
+          above the canvas's z-0 so it covers the empty page rather than the
+          artwork. It is the one element here that is purely optical, so if
+          the glass should ever go back to sitting on plain white, this div
+          and the one .play-ambient rule are the whole of it. */}
+      <div className="play-ambient" aria-hidden="true" />
 
       {/* Phones get the same five plays through one pill on the bottom edge,
           which opens a sheet holding the column that no longer fits. Both
