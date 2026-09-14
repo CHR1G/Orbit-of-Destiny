@@ -15,7 +15,7 @@
 > · 删除守卫的正确绕法改为「同盘 mv」（第 6.1 节）；
 > · GitHub 那节整段重写（加速镜像已死，改用系统代理，第 6.4 节）；
 > · 字体修复**已上线并逐字节复验**（第 7.4 节，含"工具报错但实际生效"的坑）；
-> · **远端实际停在 `22ae952`，本地领先 3 个提交未推**（第 7 节 / 待办第 9 条）；
+> · **远端实际停在 `22ae952`，本地有一串提交未推**（第 7 节 / 待办第 9 条，只差 PAT）；
 > · 文档里把"21577 字符"误记成字节数，已更正（第 7.4 节）。
 
 ---
@@ -385,16 +385,28 @@ node node_modules/next/dist/bin/next build
 ### Git
 
 ```
-25341bb  Record the font fix as live, and how it was nearly mis-verified   ← 本地 HEAD
+8e32c38  Count the new commit in the push backlog                          ← 本地 HEAD
+4bcac06  Re-verify the live fonts end to end, and stop recommending a domain release
+25341bb  Record the font fix as live, and how it was nearly mis-verified
 09a64ca  Correct the handoff doc for the F: machine and record this round's findings
 3abbff7  Build the woff2 faces the @font-face blocks already expected
 22ae952  Bring the handoff doc up to date for the next machine             ← origin/main（已确认）
 6066265  Record the deck art as AI-generated, closing the provenance gap
 ```
 
-分支 `main`。工作区干净，本轮改动全部已入 `25341bb`。
+分支 `main`，工作区干净。
 
-**远端落后 3 个提交。** 2026-09-14 实测（不是照抄旧记录）：
+> ☝️ **别把上面那个 HEAD 当成事实来源。** 本文档每自我修正一次就会再多一个提交
+> （这份记录本身就是这么叠出来的），所以那张表写下的瞬间就已经旧了一点。
+> **要准确数字一律实测**：
+>
+> ```bash
+> git log --oneline -5
+> git log --oneline origin/main..HEAD     # 真正差了几个提交
+> ```
+
+**远端落后于本地，且落后多少会随文档更新继续变。** 2026-09-14 实测
+（不是照抄旧记录）：
 
 ```
 git -c http.proxy=http://127.0.0.1:7897 -c https.proxy=http://127.0.0.1:7897 \
@@ -402,11 +414,11 @@ git -c http.proxy=http://127.0.0.1:7897 -c https.proxy=http://127.0.0.1:7897 \
 → 22ae952cc7031d88edd4cc80dc035e83030942db  refs/heads/main
 ```
 
-即 `3abbff7` / `09a64ca` / `25341bb` 三个提交**尚未推**。代理本身是通的
-（`ls-remote` 走通了，说明第 6.4 节那套代理地址仍然有效），缺的只是**凭据** ——
-`credential.helper` 是 `manager`，但里面没有 github.com 的登录态，所以
-**直接 `git push` 会挂起等弹窗**（详见第 8 节待办）。要推得先拿到一个
-classic PAT（勾 `repo`）。
+也就是说**远端停在 `22ae952`**，而本地已经有 `3abbff7` / `09a64ca` / `25341bb` /
+`4bcac06` 等一串没推的提交。代理本身是通的（`ls-remote` 走通了，说明第 6.4 节
+那套代理地址仍然有效），缺的只是**凭据** —— `credential.helper` 是 `manager`，
+但里面没有 github.com 的登录态，所以**直接 `git push` 会挂起等弹窗**
+（详见第 8 节待办第 9 条）。要推得先拿到一个 classic PAT（勾 `repo`）。
 
 > 早先本文档写"远端已推平到 `6066265`"，与实测不符 —— 实际远端停在
 > `22ae952`。判断远程位置**一律以 `ls-remote` 实测为准**，别沿用旧记录。
@@ -435,7 +447,8 @@ classic PAT（勾 `repo`）。
 
 ### 未提交的改动
 
-无。工作区干净，全部已入 `25341bb`（本轮只动了 `HANDOFF.md` 本身）。
+无。工作区干净，本轮改动（字体修复 + 文档订正）都已入提交。
+最近这次只动了 `HANDOFF.md` 本身。
 
 ### 7.4 线上与发布
 
@@ -563,8 +576,9 @@ node node_modules/next/dist/bin/next dev -p 3000
 
 ### 待做的工程项（按性价比排）
 
-9. **把 4 个提交推上 GitHub**（唯一能靠命令做完、只差凭据的一项）。
-   远端 `22ae952` ← 本地 `4bcac06`，待推 `3abbff7` / `09a64ca` / `25341bb` / `4bcac06`。
+9. **把本地未推的提交推上 GitHub**（唯一能靠命令做完、只差凭据的一项）。
+   远端停在 `22ae952`，本地已领先若干提交（`3abbff7` 起，含本文档的多次更新）。
+   **别抄文档里的数字，用 `git log --oneline origin/main..HEAD` 数。**
    代理已验证可用，**缺的只是一个 classic PAT（勾 `repo`）**；
    `credential.helper=manager` 里没有 github.com 登录态，裸 `git push` 会挂起。
    推法见第 6.4 节（token 只出现在命令行里，别写进 `.git/config`，
@@ -683,5 +697,6 @@ node cdp-shot.js <outdir> http://localhost:3000/ at-rest hover entry mobile
 - [ ] `npm run build` 通过（**先把 `.next` / `out` 同盘 mv 走**，见第 6.1 节）
 - [ ] `git status` 干净
 - [ ] `git ls-remote origin main` 与本地 HEAD 一致 —— **注意 2026-09-14 时并不一致**：
-      远端 `22ae952`，本地 `25341bb`，差 3 个提交（待办第 9 条，只差 PAT）
+      远端停在 `22ae952`，本地已领先（数量用 `git log --oneline origin/main..HEAD` 数），
+      要推只差一个 PAT（待办第 9 条）
 - [ ] GitHub 能推通（若失败，第 6.4 节的三步，缺一不可）
