@@ -562,8 +562,15 @@ body[data-tone] .element-serif {
     animation: none;
   }
   /* Holo stays visible (the tilt is what makes the card feel like an
-   object) but the tracking animation and the glare fade are cut. */
+     object) but the tracking animation and the glare fade are cut. */
   .halo-spin::before {
+    animation: none;
+  }
+  /* Same call for the menu's two light passes. Neither element changes shape
+     or disappears — the disc keeps its fixed specular and the row keeps its
+     static rim-light pass — only the two endless turns stop. */
+  .play-halo::before,
+  .play-orb::before {
     animation: none;
   }
   .holo-tilt {
@@ -1551,7 +1558,7 @@ body[data-tone] .element-serif {
      the element and leave the menu sitting on top of the ring on a phone.
      The layout (flex / column / items-end) comes from the utility classes
      in the JSX instead. */
-  gap: 0.42em;
+  gap: 0.66em;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1578,21 +1585,29 @@ body[data-tone] .element-serif {
    underneath it. */
 .play-row {
   position: relative;
+  /* Horizontal capsule now, not a stacked plate. The row used to be a
+     two-line block (label over description) because the description was
+     always on; once it moved out of the flow and behind a hover there was
+     nothing left to stack, and a capsule is what the menu should have been
+     all along — see .play-orb for the disc that leads it. */
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.18em;
-  /* One width for all five, wide enough for the longest description
-     ("现状 + 两条路各自的发展与结果" at 0.78em, which measures 14.8em).
-     min-width rather than width: the row sizes to whichever is larger, so
-     the column reads as a stack of switches and not a ragged staircase. */
-  min-width: 14.9em;
-  padding: 0.58em 0.86em 0.64em;
-  /* Two-sided rounding: a capsule would eat the first and last glyph on a
-     two-line row, and a bare 0.72em corner reads as a rounded rectangle
-     rather than glass. 1.1em is short of a pill but unmistakably softened
-     on both ends. */
-  border-radius: 1.1em;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.62em;
+  /* One width for all five. It no longer has to fit a description (that is
+     out of the flow now), only the longest label plus its level tag, so the
+     14.9em the stacked version needed is gone. min-width rather than width:
+     the column still reads as a set rather than a ragged staircase. */
+  min-width: 11.6em;
+  /* Asymmetric on purpose: the disc is inset by its own 0.3em, and the right
+     end carries the trailing tag, so both ends get less padding than a
+     label-only pill would want. */
+  padding: 0.34em 0.92em 0.34em 0.34em;
+  /* A true capsule. The old 1.1em was chosen to stop a two-line row eating
+     its first and last glyph; with one line there is nothing to eat, and the
+     reference is unambiguously a pill. The phone sheet puts the two-line
+     layout back and restores 1.1em with it — see the sheet's block. */
+  border-radius: 999px;
   /* 米白 — the same warm off-white as the doll's sclera (#f3e8e0 family), so
      the buttons sit on the page as part of the same material rather than as
      cold glass laid over it. The plate is deliberately close to the page
@@ -1616,7 +1631,11 @@ body[data-tone] .element-serif {
     inset 0 0 0 1px rgba(255, 250, 244, 0.5),
     0 1px 2px rgba(120, 100, 86, 0.05),
     0 8px 20px -12px rgba(120, 100, 86, 0.28);
-  opacity: 0.72;
+  /* Raised from 0.72. The row used to sit almost flat until the pointer
+     arrived, which was right for a list of switches and wrong for this: the
+     capsule now carries an always-on orbit and a lit disc, and at 0.72 both
+     were being dimmed by the row's own opacity rather than by their own. */
+  opacity: 0.94;
   transition:
     opacity 0.18s ease,
     transform 0.18s ease,
@@ -1647,7 +1666,10 @@ body[data-tone] .element-serif {
   /* The bezel's overhang. The source uses 4px at its own scale; the row's
      font-size is smaller here, so it is expressed in em and lands near 3px. */
   inset: -0.22em;
-  border-radius: calc(1.1em + 0.22em);
+  /* inherit, not the old `calc(1.1em + 0.22em)`: the row is a capsule now and
+     a hand-computed corner would leave the bezel a rounded rectangle sitting
+     under a pill. */
+  border-radius: inherit;
   pointer-events: none;
   z-index: 0;
   background: linear-gradient(
@@ -1680,6 +1702,219 @@ body[data-tone] .element-serif {
     rgba(255, 250, 240, 0.20) 86%,
     rgba(255, 252, 246, 0.40) 100%
   );
+}
+/* 光芒环绕 — the light that runs round the rim and never stops.
+ *
+ * Two layers, because the effect has two halves that want different things and
+ * one element cannot be both:
+ *
+ *   .play-halo       a thick, low-alpha BLOOM sitting outside the capsule
+ *   .play-halo-core  a thin, full-strength RIM LIGHT on its edge
+ *
+ * Both are conic gradients on ROTATING SQUARE CHILDREN rather than on the ring
+ * itself. Rotating the ring element is fine on .spec-btn above because its
+ * button is a circle; this row is a capsule, and an ellipse spun about its own
+ * centre is not itself — the sweep would visibly wobble. Rotating an oversized
+ * square inside the clip turns the sweep without touching the silhouette, and
+ * needs no @property registration, so it animates wherever the rest of this
+ * file does.
+ *
+ * Both are also ring-masked with the content-box subtraction .spec-btn::after
+ * already uses. The first attempt left the bloom unmasked on the theory that a
+ * mask would clip its spill; that was wrong twice over — the spill comes from
+ * the element's own negative inset, not from bleeding, and an unmasked conic
+ * simply washes the whole capsule instead of ringing it.
+ *
+ * ALWAYS on. .spec-btn's rim is cursor-tracked and reads as a reply to the
+ * pointer; the brief here was light that is simply there, so there is no
+ * --spec-bright and no hover dependency.
+ *
+ * The bands are tinted warm on one side and cool on the other rather than
+ * white, and that is not decoration: the page is #fafafa and the capsule is
+ * near-white, so a white sweep on it is white on white and reads as nothing.
+ * The first pass proved it — the effect was running and invisible. The tint is
+ * the dispersion .liquid-btn::before already uses, carried far enough to read. */
+.play-halo {
+  content: "";
+  position: absolute;
+  /* Spills past the row's own border, so the light reads as leaving the glass
+     rather than as a stroke drawn on it. */
+  inset: -0.34em;
+  border-radius: inherit;
+  /* The band is exactly this padding, cut away by the mask below. Thick,
+     because this layer is the soft half of the effect. */
+  padding: 0.3em;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+.play-halo::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* Square, and generously oversized: a square is the cheaper of the two ways
+     to guarantee a child that still covers the rim at every angle of the turn
+     (the other is a circle, which cannot be written as a percentage pair).
+     Whatever the capsule's aspect, the half-diagonal is far inside this. */
+  width: 260%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  /* Wide, low-alpha bands — this layer is meant to be felt, not read. */
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0) 0deg,
+    rgba(255, 206, 150, 0.42) 40deg,
+    rgba(255, 246, 232, 0.55) 66deg,
+    rgba(196, 224, 255, 0.32) 104deg,
+    rgba(255, 255, 255, 0) 148deg,
+    rgba(255, 255, 255, 0) 176deg,
+    rgba(186, 214, 255, 0.36) 216deg,
+    rgba(255, 248, 238, 0.55) 250deg,
+    rgba(255, 214, 162, 0.30) 288deg,
+    rgba(255, 255, 255, 0) 332deg
+  );
+  mix-blend-mode: screen;
+  animation: play-halo-turn 6.5s linear infinite;
+}
+/* The crisp half. Same construction as .spec-btn::after, thin band and the
+   bands pushed to full strength — this is the part that has to be legible as
+   a ring of light rather than a glow. */
+.play-halo-core {
+  content: "";
+  position: absolute;
+  /* Back onto the capsule's own edge: the parent is inset -0.34em, so undoing
+     exactly that lands this ring on the border the bloom leaves behind. */
+  inset: 0.34em;
+  border-radius: inherit;
+  padding: 0.1em;
+  overflow: hidden;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+.play-halo-core::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 260%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0) 0deg,
+    rgba(255, 186, 116, 0.75) 38deg,
+    rgba(255, 255, 255, 1) 62deg,
+    rgba(152, 200, 255, 0.6) 92deg,
+    rgba(255, 255, 255, 0) 128deg,
+    rgba(255, 255, 255, 0) 180deg,
+    rgba(140, 192, 255, 0.65) 214deg,
+    rgba(255, 255, 255, 1) 244deg,
+    rgba(255, 190, 122, 0.6) 276deg,
+    rgba(255, 255, 255, 0) 314deg
+  );
+  mix-blend-mode: screen;
+  animation: play-halo-turn 6.5s linear infinite;
+}
+@keyframes play-halo-turn {
+  to {
+    transform: translate(-50%, -50%) rotate(1turn);
+  }
+}
+
+/* The disc the sigil sits in.
+ *
+ * Dark, and that is the one decision worth arguing. Every mark in
+ * ring/sigil.jsx is drawn twice — a dark under-stroke with a silver gradient
+ * riding on it — and that pair was cut to sit on pale metal. Lifted onto the
+ * capsule unchanged the silver lands in the same value range as the plate and
+ * the symbol goes soft. A graphite lens gives the pair the contrast it was
+ * drawn for, and it is the only dark object in the menu, which is what makes
+ * the disc read as a bead seated in the glass rather than a hole punched
+ * through it. */
+.play-orb {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5em;
+  height: 2.5em;
+  border-radius: 50%;
+  /* Clips the sweeper below to the disc. */
+  overflow: hidden;
+  background:
+    /* Fixed specular, top-left — the bead in the reference is mostly rim, and
+       this is the half of it that does not move. */
+    radial-gradient(
+      120% 120% at 32% 24%,
+      rgba(255, 255, 255, 0.34) 0%,
+      rgba(255, 255, 255, 0) 46%
+    ),
+    /* Body: graphite, lifting a step toward the top so the disc has an
+       up-side instead of reading as a flat hole. */
+    linear-gradient(168deg, #43464e 0%, #2b2e34 44%, #191b1f 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.42),
+    inset 0 1px 1px rgba(255, 255, 255, 0.55),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.5),
+    /* A short, tight seat. The first pass used a wide dark shadow and it read
+       as a smudge on the pale glass rather than as the disc sitting in it. */
+    0 1px 2px rgba(20, 24, 15, 0.26);
+}
+/* 液态流光 — the sheen inside the disc, always moving.
+ *
+ * Two bands of unequal width rather than one. A single band reads as a
+ * highlight going round; uneven bands at a different period from the rim's
+ * (7.6s against 6.5s) drift in and out of phase with it, which is what makes
+ * the pair read as liquid rather than as two clocks. `screen` so it adds light
+ * to the graphite instead of painting grey over it, and a slight blur so the
+ * bands have no hard edge to catch the eye as it turns. */
+.play-orb::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 300%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0) 0deg,
+    rgba(255, 255, 255, 0.06) 26deg,
+    rgba(255, 255, 255, 0.62) 58deg,
+    rgba(226, 239, 255, 0.30) 84deg,
+    rgba(255, 255, 255, 0) 116deg,
+    rgba(255, 255, 255, 0) 186deg,
+    rgba(255, 238, 214, 0.34) 226deg,
+    rgba(255, 255, 255, 0.86) 262deg,
+    rgba(255, 255, 255, 0.10) 296deg,
+    rgba(255, 255, 255, 0) 330deg
+  );
+  mix-blend-mode: screen;
+  /* No blur here. An earlier pass blurred this by 0.04em to soften the bands
+     and it read as haze sitting on the lens rather than as light in it — the
+     bands are already soft enough by construction, since a conic gradient's
+     falloff is the ramp between its own stops. */
+  animation: play-orb-flow 7.6s linear infinite;
+}
+@keyframes play-orb-flow {
+  to {
+    transform: translate(-50%, -50%) rotate(1turn);
+  }
 }
 /* The hover highlight, and the whole point of this row.
  *
@@ -1720,9 +1955,13 @@ body[data-tone] .element-serif {
     opacity 0.34s ease,
     filter 0.34s ease;
 }
-/* Keep the label and the sigil above the rim highlight and the colour wash. */
+/* Keep the disc, the label and the tag above the rim highlight, the halo and
+   the colour wash. .play-desc is not listed: it is positioned and z-indexed
+   by its own rule, where it also has to lift above the neighbouring capsule. */
+.play-orb,
+.play-copy,
 .play-name,
-.play-desc {
+.play-level {
   position: relative;
   z-index: 2;
 }
@@ -1837,25 +2076,32 @@ body[data-tone] .element-serif {
   }
 }
 
-.play-name {
-  display: inline-flex;
+.play-copy {
+  display: flex;
   align-items: center;
-  gap: 0.44em;
+  gap: 0.5em;
+  /* Takes the rest of the capsule, so the level tag can be pinned to its far
+     end rather than trailing its own label. */
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.play-name {
+  display: block;
   white-space: nowrap;
   line-height: 1.2;
 }
 /* Struck from the silver gradient in ring/sigil.jsx, so these stay flat
    strokes — no colour, no fill, nothing that can drift with the OS emoji
-   font. The plate is pale enough underneath that they read as marks
-   pressed into metal rather than as stickers. */
+   font. They sit on the dark disc of .play-orb now rather than directly on
+   the pale plate, which is the ground that pair was cut for. */
 .play-sigil {
-  width: 1.4em;
-  height: 1.4em;
+  width: 1.3em;
+  height: 1.3em;
   flex: none;
-  opacity: 0.94;
-  /* The 1px white under the mark is the pressed edge: dark line, light
-     lip. Without it the silver reads as a smudge rather than an incision. */
-  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.95));
+  opacity: 0.96;
+  /* A soft dark seat. The old 1px white under-lip was the pressed edge on
+     pale metal; on graphite the same line reads as a halo of grit. */
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
   transition:
     opacity 0.2s ease,
     filter 0.2s ease;
@@ -1865,11 +2111,17 @@ body[data-tone] .element-serif {
 }
 .play-row.is-on .play-sigil {
   opacity: 1;
+  /* Same "this one is selected" signal the old rule carried, re-expressed:
+     a warm glow off the disc instead of a white lip, which only read against
+     the pale plate. */
   filter:
-    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.95))
-    drop-shadow(0 0 3px rgba(226, 178, 120, 0.6));
+    drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 4px rgba(255, 196, 120, 0.85));
 }
 .play-level {
+  /* Pinned right, so all five tags line up in a column at the capsule ends
+     instead of each following its own label's length. */
+  margin-left: auto;
   padding: 0.1em 0.45em;
   border-radius: 999px;
   font-size: 0.6em;
@@ -1880,19 +2132,55 @@ body[data-tone] .element-serif {
   background: rgba(9, 12, 20, 0.05);
   box-shadow: inset 0 0 0 1px rgba(9, 12, 20, 0.1);
 }
+/* 简介说明 — the brief, revealed on hover or keyboard focus.
+ *
+ * Anchored to the capsule, NOT to .play-copy: .play-copy is deliberately
+ * `position: static`, so the nearest positioned ancestor is the row itself and
+ * every panel lands the same 0.72em off the capsule's left edge. Anchored to
+ * the copy it would start at a different x on every row, since each label is
+ * its own width.
+ *
+ * Out of the flow on purpose. In the flow it is a second line inside one of
+ * five rows, and a flex column that changes one row's height shoves the other
+ * four around every time the pointer crosses the menu. */
 .play-desc {
-  margin-top: 0.06em;
+  position: absolute;
+  right: calc(100% + 0.72em);
+  top: 50%;
+  z-index: 3;
+  padding: 0.42em 0.72em;
+  border-radius: 0.72em;
   font-size: 0.78em;
   line-height: 1.25;
   white-space: nowrap;
-  opacity: 0.52;
-  /* 1.4em sigil + 0.44em gap, divided by this rule's own 0.78em, so the
-     line starts under the name and not under the mark. */
-  padding-left: 2.36em;
-  transition: opacity 0.18s ease;
+  color: #2f2b27;
+  /* The row's own glass a step denser — this panel lands over the ring, which
+     is the busiest thing on the page, and it has to stay readable there. */
+  background: linear-gradient(
+    180deg,
+    rgba(250, 247, 243, 0.97) 0%,
+    rgba(245, 240, 234, 0.93) 100%
+  );
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 251, 245, 0.5),
+    0 6px 18px -8px rgba(120, 100, 86, 0.4);
+  /* Invisible, but never `display: none` — it stays in the accessibility tree
+     and is announced with the label. pointer-events off so the panel cannot
+     eat the very hover that summoned it. */
+  opacity: 0;
+  transform: translateX(0.34em) translateY(-50%);
+  pointer-events: none;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
 }
-.play-row:hover .play-desc {
-  opacity: 0.7;
+.play-row:hover .play-desc,
+.play-row:focus-visible .play-desc {
+  opacity: 1;
+  transform: translateX(0) translateY(-50%);
 }
 
 /* ------------------------------------------------------------------ *
@@ -2015,15 +2303,54 @@ body[data-tone] .element-serif {
     color: rgba(10, 10, 10, 0.4);
   }
 
-  /* Touch has no hover, and the rows lean on it: at rest they sit at 0.6
-     opacity and only come up under a pointer. On a phone that reads as
-     five greyed-out rows, so the sheet holds them near full instead. */
-  .play-sheet .play-row { opacity: 0.94; }
+  /* Two lines again, on a grid.
+   *
+   * Touch has no hover, so the brief cannot hide behind one — it has to come
+   * back into the flow, which is exactly what the desktop capsule avoids. That
+   * in turn costs the capsule its radius: 999px on a two-line row eats the
+   * first and last glyph of both lines, which is why the old stacked row used
+   * 1.1em in the first place. So the sheet keeps a rounded plate and the
+   * desktop keeps a pill; the two layouts genuinely differ, and neither is
+   * just the other rounded differently for looks.
+   *
+   * Grid rather than flex so the disc can span both lines and stay centred
+   * against them, with the label and the brief stacked in the second column.
+   * The row's own opacity no longer needs restating here — the desktop base
+   * moved up to 0.94, which is what the sheet was forcing. */
+  .play-sheet .play-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: 0.62em;
+    row-gap: 0.08em;
+    min-width: 0;
+    padding: 0.58em 0.86em 0.64em 0.42em;
+    border-radius: 1.1em;
+  }
+  .play-sheet .play-orb {
+    grid-row: 1 / span 2;
+  }
+  .play-sheet .play-copy {
+    grid-column: 2;
+  }
   .play-sheet .play-row:active {
     opacity: 1;
     transform: translateY(-1px);
   }
-  .play-sheet .play-desc { opacity: 0.62; }
+  /* Static again. The absolute placement, the lift and the glass all belong
+     to a floating brief and mean nothing once it is back in the flow. */
+  .play-sheet .play-desc {
+    position: static;
+    grid-column: 2;
+    opacity: 0.62;
+    transform: none;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 
   /* Same glass as a row, turned into a pill. Sized in em off the
      container, so it takes the sheet's font-size with it. */

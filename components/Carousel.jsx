@@ -1702,17 +1702,41 @@ export default function Carousel() {
           }`}
           aria-current={on ? "true" : undefined}
         >
-          {/* The rim-light pass. A real element rather than ::before because
-              ::before is doing the outer bezel — see globals.css — and the
-              source's generate-button needs both layers at once. */}
+          {/* Three passes of light, outermost first.
+              .play-halo and the .play-halo-core inside it are the travelling
+              glow that orbits the capsule and never stops. Two elements rather
+              than one because they want opposite things: the outer one is an
+              unmasked soft bloom that has to spill past the edge, the inner one
+              is masked down to a hairline band that has to stay crisp on it.
+              A single masked element cannot do both — a mask clips its own
+              box-shadow as readily as its background.
+              .play-rim is the static rim-light pass — a real element rather
+              than ::before, because ::before is doing the outer bezel and
+              ::after the hover wash, and this row needs all three at once. */}
+          <span className="play-halo" aria-hidden="true">
+            <span className="play-halo-core" />
+          </span>
           <span className="play-rim" aria-hidden="true" />
-          <span className="play-name">
+          {/* The sigil used to ride inside .play-name, so it sat on the label's
+              baseline and its size was whatever the text line gave it. It now
+              has its own lens: a dark glass disc that the mark is centred in
+              by the disc's own flex box, so the two cannot drift apart. The
+              dark disc is what the silver strokes need — they were drawn to
+              sit on pale metal and would wash out on the capsule alone. */}
+          <span className="play-orb" aria-hidden="true">
             <Sigil name={p.sigil} className="play-sigil" />
-            {p.name}
+          </span>
+          <span className="play-copy">
+            <span className="play-name">{p.name}</span>
             <span className="play-level">
               {p.level === "basic" ? "初级" : "进阶"}
             </span>
           </span>
+          {/* The brief. Held OUT of the flow and anchored to the capsule's
+              left edge, revealed on hover/focus. In the flow it would add a
+              second line to one row of five, and a flex column that changes
+              one row's height shoves the other four up and down every time
+              the pointer crosses the menu. */}
           <span className="play-desc">{p.desc}</span>
         </li>
       );
