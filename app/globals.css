@@ -566,13 +566,6 @@ body[data-tone] .element-serif {
   .halo-spin::before {
     animation: none;
   }
-  /* Same call for the menu's two light passes. Neither element changes shape
-     or disappears — the disc keeps its fixed specular and the row keeps its
-     static rim-light pass — only the two endless turns stop. */
-  .play-halo::before,
-  .play-orb::before {
-    animation: none;
-  }
   .holo-tilt {
     transition: none !important;
   }
@@ -2181,6 +2174,27 @@ body[data-tone] .element-serif {
 .play-row:focus-visible .play-desc {
   opacity: 1;
   transform: translateX(0) translateY(-50%);
+}
+/* The escape hatch, and it has to live HERE rather than in the file's main
+   reduced-motion block up near the top.
+ *
+ * That block sets `animation: none` on the things it wants stopped, and this
+ * file is unlayered with no !important in the menu — so a rule declared later
+ * wins at equal specificity, and the three sweeps below are all declared
+ * above. Putting the override up there first time round produced a rule that
+ * matched, computed, and did nothing: `animationName` still read
+ * `play-orb-flow` under an emulated `prefers-reduced-motion: reduce`. Measured,
+ * not assumed.
+ *
+ * Nothing changes shape or disappears here. The disc keeps its fixed specular,
+ * the capsule keeps its bezel and rim-light pass and its tinted bloom — only
+ * the three endless turns stop, leaving the same objects lit and still. */
+@media (prefers-reduced-motion: reduce) {
+  .play-halo::before,
+  .play-halo-core::before,
+  .play-orb::before {
+    animation: none;
+  }
 }
 
 /* ------------------------------------------------------------------ *
