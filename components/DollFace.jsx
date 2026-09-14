@@ -7,22 +7,49 @@ import { useEffect, useRef } from "react";
  * The first pass built this face out of gradients and paths, and it read as an
  * emoji: flat fills cannot carry matte-vinyl subsurface scattering, the
  * blurred mass of the hair, or the specular lobe on an eyeball. So the figure
- * is now the real render, supplied as five exactly-aligned 1293x1080 RGBA
- * plates — body, two lids, two eyeballs — and this component's only job is to
- * stack them and let the pupils follow the cursor.
+ * is now the real render, supplied as seven exactly-aligned 1293x1080 RGBA
+ * plates — body, two eyeballs, two lids, an eye-white backing and a highlight
+ * pass — and this component's only job is to stack them and let the pupils
+ * follow the cursor.
  *
  * ---------------------------------------------------------------------------
  * THE LAYER ORDER, which is the least obvious thing in this file.
  *
- * Bottom to top:  眼球  ->  身体  ->  眼皮
+ * Bottom to top:  眼白  ->  眼球  ->  高光  ->  身体  ->  眼皮
  *
- * The eyeballs are *under* the body, not over it. That is not a mistake and
- * not a stylistic choice: the body plate has a real transparent hole punched
- * through it where each eye sits (sampled alpha 0 at both eye centres), so the
- * ball shows through that hole and is framed by the socket rim the artist
- * painted. Stacking the ball on top instead would paint over that rim and lose
- * the recessed look entirely — the eye would read as a sticker on a face
- * rather than as a ball set into one.
+ * Three of those placements are deliberate and each is a statement about the
+ * artwork rather than a preference.
+ *
+ * 1. The eyeballs are *under* the body, not over it. This is not a mistake.
+ *    The body plate has a real transparent hole punched through it where each
+ *    eye sits — measured, alpha 0 through the middle: left socket y[712..811],
+ *    right y[471..586] — so the ball shows through that hole and is framed by
+ *    the socket rim the artist painted. Stacking the ball on top instead would
+ *    cover that rim and lose the recessed look entirely: the eye would read as
+ *    a sticker on a face rather than as a ball set into one.
+ *
+ * 2. 眼白 (the eye white) is *below* the ball. The ball slides — see MAX_TRAVEL
+ *    — and when it does it uncovers the part of the socket it just vacated.
+ *    With no backing layer, what shows through that gap is whatever is behind
+ *    the figure, which is not a colour this face owns. The white plate is sized
+ *    to back the entire socket with room to spare, measured per eye:
+ *
+ *      left   white x[461..642] y[666..848]   socket x[489..635] y[712..811]
+ *      right  white x[730..910] y[425..606]   socket x[789..902] y[471..586]
+ *
+ *    so the tightest clearance in any direction is 8px against a travel of 10.
+ *    It is also what makes a dropped lid read correctly: the sclera is behind
+ *    everything that moves, so the white is what the lash edge closes onto.
+ *
+ * 3. 高光 (the highlight pass) is *above* the ball and *below* the body. It is
+ *    the specular lobe on the eye surface — a property of where the eye is, not
+ *    of which way the ball happens to be pointing — so it must not ride along
+ *    with the ball, and it must be occluded by the lid and by the opaque cheek
+ *    exactly as the ball is. Both of those fall out of sitting between the two
+ *    layers rather than out of any per-frame logic.
+ *
+ * 眼白 and 高光 are static: full-canvas plates with no transform, same as the
+ * body. Only the two balls and the two lids are ever written to.
  *
  * ---------------------------------------------------------------------------
  * WHY THERE IS NO BLINK. This was tried, tuned twice, and removed on purpose.
@@ -63,51 +90,82 @@ import { useEffect, useRef } from "react";
  * into a hand-measured sub-rect (say a 113x110 box around an eyeball) rescales
  * all 1293x1080 px of artwork into that box, so the iris smears across the
  * whole eye and the composite reads as a white blob. If the eyes ever look
- * wrong again, check this first.
+ * wrong again, check this first. It applies to the two new layers identically —
+ * 眼白 and 高光 are not crops of the eyes, they are two more full canvases.
  *
  * ---------------------------------------------------------------------------
- * The lid micro-motion, and why it is 1.5px rather than a blink.
+ * The lid micro-motion, and why it is a drift rather than a blink.
  *
  * A real blink was removed (see above): these plates carry the brow and the
  * lash line, so any travel big enough to close an eye drags those landmarks
- * with it. But a perfectly still lid reads as a decal, so some motion is kept
- * — just far below the threshold where the seam can show.
+ * with it. But a perfectly still lid reads as a decal, so some motion is kept.
  *
- * Amplitudes were measured rather than guessed. The lid plates overlap their
- * sockets by 90px (left) and 154px (right) at rest, so a 1-2px excursion stays
- * buried deep inside that overlap and the plate's edge never becomes visible.
+ * How much is available is a measurement, and the honest form of it is per
+ * column. The lash edge is diagonal and so is the socket floor, so a single
+ * column's clearance and the plate's global lowest row disagree by 90px, and
+ * neither one alone is the constraint. Read column by column, the gap between
+ * lash edge and socket floor runs −9px to +82px on the left (median +65) and
+ * −38px to +89px on the right (median +55).
+ *
+ * The negative end of that range is real and is not a defect: at rest the lash
+ * edge already crosses the socket floor at the inner corner of each eye. It
+ * does not show, and the reason is that both edges are soft where they meet —
+ * the socket floor fades in over roughly five pixels (alpha 3 → 47 → 164 → 239
+ * → 255 down a column) and the lash edge is antialiased — so a few pixels of
+ * overlap composite two partial alphas instead of cutting a hard line.
+ *
+ * What would show is travel large enough to drag the hard part of the lash edge
+ * well past the floor. Compositing the plates at a range of offsets puts that
+ * boundary in view: at 20px the eye narrows and still reads as a face; at 35px
+ * it is a slit, which reads as a squint. The amplitudes below are about a fifth
+ * of the median clearance, and roughly doubled from the previous pass — the
+ * previous values were set while the lid was the only thing that could move,
+ * and they were deliberately conservative.
+ *
  * The two eyes are deliberately out of phase: in phase they read as one
  * mechanism, and the figure is asymmetric to begin with.
  *
  * Everything animated is one attribute write per frame from a single rAF loop:
  * nothing here re-renders React. */
 
-/* The five plates, all 1293x1080 RGBA.
+/* The seven plates, all 1293x1080 RGBA.
  *
- * Only the body is WebP, and that is not an oversight. The other four are flat
- * line art — lids and eyeballs — which PNG stores at 73-238x (24-77 KB each),
- * so there is nothing to win. The body is the one photographic plate: soft
- * vinyl gradients with no repeating structure, which is exactly what PNG is
- * worst at, and it was compressing 2.6x: 2,127 KB.
+ * Three different encodings, each for a reason rather than by drift.
  *
- * At 24% of first load, one image, it was the largest thing on the page by a
- * factor of four (measured through CDP: 4,581 KB total, of which this was
- * 2,127). Re-encoded to WebP at q95 it is 90 KB — a 24x cut — with the alpha
- * plane kept bit-exact (`alpha_quality=100`) so the socket rims cannot drift,
- * composite-space PSNR 46.7 dB, worst single pixel 12/255, and no structure in
- * the error at 12x amplification. q100 would be 168 KB and lossless 1,083 KB
- * if the fidelity bar ever moves, so the raw 2.1 MB original is worth keeping
- * out of the tree rather than in it.
+ * The body is photographic — soft vinyl gradients with no repeating structure,
+ * which is exactly what PNG is worst at — so it is lossy WebP. It was 2,127 KB
+ * as PNG and compresses 2.6x; at 24% of first load it was the largest thing on
+ * the page by a factor of four. At q95 with the alpha plane kept bit-exact
+ * (`alpha_quality=100`) so the socket rims cannot drift, it is 86 KB, with
+ * composite-space PSNR 46.7 dB and a worst single pixel of 11/255.
  *
- * The original is at
- *   C:\Users\NINGMEI\.workbuddy\quarantine\infinite-space-2026-09-12\originals\body.png
- * and tools/reencode_doll.py in the same folder regenerates any of these. */
+ * A note for anyone re-checking that number: measured over raw RGBA it comes
+ * out at 34 dB with a 193/255 worst pixel, which looks catastrophic and is not.
+ * PNG export leaves whatever colour the artist's layer held under alpha=0 —
+ * 31.6% of this plate — and WebP re-quantises it. That colour is invisible in
+ * the composite and fully counted by a naive PSNR. Always composite over a
+ * known background before believing a number like this.
+ *
+ * 眼白 and 高光 are the opposite case: smooth, low-frequency gradients with no
+ * detail to lose and every reason not to band, so they are **lossless** WebP
+ * (`lossless=True, exact=True` — the `exact` flag matters, it is what keeps the
+ * transparent RGB untouched; without it 1.3M pixels come back changed). That
+ * takes them from 46 KB and 81 KB as PNG down to 20 KB and 38 KB, bit-identical
+ * on decode, and the whole seven-plate set to ~322 KB.
+ *
+ * The eyeballs and the lids stay PNG. They are flat line art with hard edges —
+ * the class of image PNG already handles well, at 20-76 KB — so re-encoding
+ * them buys nothing and risks ringing on the lash edge.
+ *
+ * Regenerate any of these with tools/reencode_doll.py. */
 const PLATES = {
   body: "/doll/body.webp",
   lidLeft: "/doll/lid-left.png",
   lidRight: "/doll/lid-right.png",
   eyeLeft: "/doll/eye-left.png",
   eyeRight: "/doll/eye-right.png",
+  eyeWhite: "/doll/eye-white.webp",
+  highlight: "/doll/highlight.webp",
 };
 
 /* Native size of the plates, and the canvas every layer is registered to. */
@@ -117,15 +175,28 @@ const ART_H = 1080;
 /* Eye centres in plate pixels, taken off the eyeball bounding boxes rather
  * than eyeballed: the figure is reclining at three-quarters, so the two eyes
  * are 239px apart vertically and 274px horizontally. A symmetric guess reads
- * as wrong immediately. */
+ * as wrong immediately.
+ *
+ * Re-measured against the current plates: left box x[519..629] y[689..796] →
+ * centre (574, 742.5); right box x[792..902] y[450..557] → centre (847, 503.5).
+ * Both moved less than a pixel from the previous set, which is the useful part:
+ * the new art is registered to the old canvas. */
 const EYES = [
-  { x: 573.5, y: 742 }, // 左, the lower eye
+  { x: 574, y: 742.5 }, // 左, the lower eye
   { x: 847, y: 503.5 }, // 右, the upper eye
 ];
 
-/* How far a pupil may slide, in plate pixels. The ball is ~113x110 and the
+/* How far a pupil may slide, in plate pixels. The ball is ~111x108 and the
  * iris nearly fills it, so this is deliberately small: enough to read as a
- * glance, not so much that the ball leaves the socket painted for it. */
+ * glance, not so much that the ball leaves the socket painted for it.
+ *
+ * The eye-white now bounds this from underneath as well, and by a number worth
+ * knowing: measured clearance from the ball to the edge of its white is 58/13
+ * up/down 23/52 on the left and 62/8 up/down 25/49 on the right, against a
+ * travel of 10. So the ball can only ever leave its backing by 2px, at the
+ * right eye, moving straight right — and that strip is still covered by the
+ * highlight pass, which overhangs the white on that side (x[740..916] against
+ * the white's x[730..910]). */
 const MAX_TRAVEL = 10;
 
 /* Breathing lid, in SCREEN px — see the note below on why the unit matters.
@@ -149,31 +220,11 @@ const MAX_TRAVEL = 10;
  * which reads as jitter rather than breathing. The tick sharpens the wave
  * toward a triangle so the speed is closer to constant.
  *
- * The amplitudes come from the plate geometry, measured rather than guessed:
- *
- *   left   lid opaque core y[642..776]   ball y[688..796]   hole y[704..812]
- *   right  lid opaque core y[417..601]   ball y[450..557]   hole y[449..596]
- *
- * The lid's bottom edge is a HARD edge, not a feather — alpha is 255 right
- * down to the last row and then 151/168 in a single pixel — so what keeps it
- * from showing is that it stays *inside* the socket the body plate punches.
- * The binding direction is therefore DOWN: past the hole's bottom edge the
- * lid's cut line lands on the cheek as a visible arc.
- *
- *   left   down budget = 812 - 776 = +36 plate px
- *   right  down budget = 596 - 601 = -5 plate px
- *
- * The right lid's edge already sits a few px past its hole's bottom at rest,
- * so it has effectively no downward room to spend, which is why the two eyes
- * are not treated alike. Both are held to about a quarter of the left's
- * budget anyway: 30px of travel was tested and read as a deliberate squint
- * rather than a breath, so the whole effect lives well inside the geometric
- * limit and the limit is not what is setting these numbers.
- *
- * An earlier draft of this comment claimed the rule was "the lid must keep
- * covering the eyeball". That is wrong and worth recording: the stretch of
- * ball visible below the lid's edge IS the open eye, so uncovering it is not
- * a failure, it is the point. Only the cut line leaving the socket is. */
+ * Both were fixed, and then the amplitudes were raised again on request — the
+ * whole point of this pass. They are now ~2.2x the previous values, which the
+ * per-column clearance above says is well inside what the plates will take, and
+ * which the offset composites say still reads as breathing rather than as a
+ * squint. See the micro-motion note in the header for where the ceiling is. */
 /* `bias` sets where the wave sits: 1.0 puts its top at 0, so the lid touches
  * its authored rest pose and closes from there — the eye still reaches the
  * open state the artist drew. Above 1.0 the whole swing moves down and the
@@ -182,25 +233,29 @@ const MAX_TRAVEL = 10;
  * right lid has. */
 /* Amplitudes are also kept clear of LID_TRAVEL on purpose. A wave that hits
  * its clamp flat-tops, and a flat top is a dwell at the extreme — the very
- * thing the sharpened wave exists to remove. The right eye at 7px was
- * clipping for 6.8% of its cycle; 6.6px lands just under and never touches. */
+ * thing the sharpened wave exists to remove. At 16px on the left the peak
+ * travel is 16/k plate px, which stays under the clamp at every viewport width
+ * down to roughly 460 CSS px of stage, and the clamp catches it below that. */
 const LID_BREATH = [
-  { amp: 7.2, period: 5200, phase: 0, bias: 1.0 },  // left: down-only
-  { amp: 6.6, period: 6100, phase: 0.5, bias: 0.5 }, // right: both ways
+  { amp: 16, period: 5200, phase: 0, bias: 1.0 },    // left: down-only
+  { amp: 15, period: 6100, phase: 0.5, bias: 0.5 },  // right: both ways
 ];
 
 /* Hard travel limits, in PLATE px. The tick clamps to these so the lid's cut
- * line can never leave the socket, whatever the wave asks for — that is the
- * one failure that shows as a visible arc on the cheek.
+ * line can never travel far enough to show, whatever the wave asks for.
  *
- * Down is the tight direction (see above), and the right lid starts 5px past
- * its hole's bottom already, so its down allowance is deliberately small.
- * Up is cheap: it only opens the eye further. The clamp is not what sets the
- * look — the amplitudes sit at roughly a quarter of these — it is insurance
- * against a retuned amplitude or a re-exported plate. */
+ * Down is the tight direction. The worst column measured −9px (left) and −38px
+ * (right) of clearance at rest — see the header note on why that is survivable
+ * — so these are set against the *median* clearance instead, which is +65 and
+ * +55, and then held to about 70% of it. That is deliberately generous
+ * compared with the amplitude, because the clamp is insurance against a
+ * retuned amplitude or a re-exported plate, not the thing that sets the look.
+ *
+ * Up is cheaper: it only opens the eye further, and since the eye-white backs
+ * the whole socket there is now something to open onto rather than a gap. */
 const LID_TRAVEL = [
-  { up: 24, down: 30 }, // left
-  { up: 24, down: 8 },  // right
+  { up: 24, down: 46 }, // left
+  { up: 24, down: 40 }, // right
 ];
 
 /* Idle: after this long without a pointer the face looks around on its own.
@@ -334,11 +389,25 @@ export default function DollFace() {
     <div className="doll" aria-hidden="true">
       <div ref={stageRef} className="doll-stage">
         <svg className="doll-svg" viewBox={`0 0 ${ART_W} ${ART_H}`}>
-          {/* 眼球 — BOTTOM of the stack, deliberately. The body plate has a
+          {/* 眼白 — BOTTOM of the stack. The backing the ball slides across,
+              and the surface the lash edge closes onto. It is larger than the
+              socket in both axes on purpose: the socket is what crops it, and
+              the overlap is what guarantees no edge of this plate is ever
+              visible. Static; no transform is ever written to it. */}
+          <image
+            href={PLATES.eyeWhite}
+            x="0"
+            y="0"
+            width={ART_W}
+            height={ART_H}
+            preserveAspectRatio="none"
+          />
+
+          {/* 眼球 — under the body, deliberately. The body plate has a
               transparent hole at each eye, so the ball is seen *through* the
               figure and framed by the painted socket rim. Drawing it above the
               body would cover that rim and flatten the eye into a sticker.
-              These two are the only moving layers. */}
+              These two are two of the four moving layers. */}
           {[PLATES.eyeLeft, PLATES.eyeRight].map((href, i) => (
             <image
               key={href}
@@ -354,8 +423,21 @@ export default function DollFace() {
             />
           ))}
 
+          {/* 高光 — over the ball, under the body. The specular pass belongs to
+              the eye's position rather than to the ball's orientation, so it
+              stays put while the ball slides beneath it, and it is cropped by
+              the same socket rim. Static. */}
+          <image
+            href={PLATES.highlight}
+            x="0"
+            y="0"
+            width={ART_W}
+            height={ART_H}
+            preserveAspectRatio="none"
+          />
+
           {/* 身体 — the figure, with the eyes open as painted and the sockets
-              punched through. It already carries the lower lashes. */}
+              punched through. It already carries the lower lashes. Static. */}
           <image
             href={PLATES.body}
             x="0"
@@ -367,9 +449,8 @@ export default function DollFace() {
 
           {/* 眼皮 — TOP of the stack. No blink: these plates carry the brow and
               the lash line, so any travel big enough to close an eye would drag
-              those landmarks down the face. They get a 1-2px breathing drift
-              instead, which stays buried inside the 90px/154px overlap they
-              already have with their sockets. */}
+              those landmarks down the face. They get a slow breathing drift
+              instead — see LID_BREATH for the measured budget it lives inside. */}
           {[PLATES.lidLeft, PLATES.lidRight].map((href, i) => (
             <image
               key={href}
