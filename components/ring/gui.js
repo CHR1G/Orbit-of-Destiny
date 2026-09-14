@@ -124,8 +124,11 @@ export function mountGui(GUI, { params, state, info, actions }) {
   text.add(params, "textSize", 8, 200, 1).onChange(rebuildText);
   text
     // Only families with an @font-face block in globals.css — anything else
-    // silently falls back to system sans and looks like a bug.
-    .add(params, "textFont", ["Satoshi", "Geist"])
+    // silently falls back to system sans and looks like a bug. The default
+    // (params.textFont) has to be in here: lil-gui matches the current value
+    // against this list, so leaving it out means the control opens on a value
+    // it cannot offer and every interaction downgrades the heading.
+    .add(params, "textFont", ["TheNightWatch", "Satoshi", "Geist"])
     .name("family")
     .onChange(rebuildText);
   text.add(params, "textWeight", { Light: 300, Regular: 400 }).onChange(rebuildText); // prettier-ignore

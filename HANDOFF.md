@@ -304,18 +304,70 @@ Tailwind v4 的 preflight 有 `img { max-width: 100% }`，会静默把 `calc(100
 所有像素尺寸都是按 **1512px 宽的参考窗口**写的，运行时乘以 `fit = viewW / 1512`。
 开发模式下右上角有 lil-gui 面板，**先打开 `fit` 目录确认 `scale` 显示 `1.000`**。
 
-### 9. 字体有两个 404（新发现）
+### 9. 字体有两个 404 —— 已修（2026-09-14）
 
 `globals.css` 的 `@font-face` 把 `.woff2` 排在 `.ttf` 前面，但
-**`public/fonts/` 里根本没有那两个 woff2 文件**：
+`public/fonts/` 里根本没有那两个 woff2 文件，访客每次白吃两次 404 才回落到 TTF。
+
+已用 `tools/subset_fonts.py` 生成真正的子集 woff2：细线体 **1.76 MB → 98 KB**，
+The Night Watch 31 KB → 4 KB；浏览器实测 1,091 个汉字**零漏字**。
+
+> 注意：**本地开发看不到这两个 404**，因为两台开发机都装了
+> `庞门正道细线体.ttf`，`@font-face` 的 `local()` 直接命中、根本不走网络。
+> 404 只会发生在没装该字体的访客身上 —— 也就是线上所有人。
+> 排查字体问题时别只看自己的机器。
+>
+> 而且细线体只在**占卜浮层**里用到（首页中文走 sans 栈），所以只在首页
+> 加载的探针也看不到它。要复现得先点开一个玩法。
+
+**改了中文文案要重跑 `python tools/subset_fonts.py`**，漏字是静默回落，
+不报错。详见 `public/fonts/README.md`。
+
+### 10. dev server 直接起不来：同步盘把 `.next` 也同步了
+
+`next dev` 报：
 
 ```
-/fonts/PangMenZhengDao-XiXianTi.woff2  -> 404
-/fonts/TheNightWatch.woff2             -> 404
+[Error: Failed to open database
+ Caused by:
+    0: Loading persistence directory failed
+    1: Unexpected file in persistence directory:
+       "...\.next\dev\cache\turbopack\v16.3.0-xxxx\CURRENT_冲突文件_Administrator_20260914095933"]
 ```
 
-功能上无害（会回落到 TTF），但每次访问白吃两次往返。
-把真的 woff2 丢进去即可生效，**不需要改任何代码**。
+Turbopack 的持久化缓存目录里出现了**百度盘的冲突文件**，它认为目录被污染，
+拒绝启动 —— 整个 dev server 挂掉，不是代码问题。
+
+成因：`.next` 只是构建缓存，但**百度盘不认 `.gitignore`**。两台机器各有一份
+`.next`，互相覆盖时百度盘生成 `xxx_冲突文件_<用户名>_<时间戳>`，缓存就坏了。
+
+```bash
+# 同盘 mv 走（rename 不计入删除，见 6.1），next dev 会重建
+mv .next /f/BaiduSyncdisk/INTERNET-1.0/_quarantine/next-$(date +%H%M%S)
+node node_modules/next/dist/bin/next dev -p 3000   # 本机坏掉的 npx 要绕过，见 6.11
+```
+
+**根治**：在百度网盘的同步设置里把 `.next`（以及 `out/`、`node_modules/`）
+排除掉。API/命令行改不了，得在客户端里点。没排除之前，每次两台机器都跑过
+dev/构建之后就会复发。
+
+> 顺带：`_quarantine/` 建在同步盘根目录里，所以**它自己也会跨机同步**
+> （本次就在里面发现过另一台机器留下的 `out-000857`）。当垃圾场用没问题，
+> 但别指望它是本地的。
+
+### 11. `npx` 用不了
+
+本机 bash shim 退化（`dirname` 等 coreutils 缺失）时，`npx` 这个 shell 脚本
+直接 `exit 127`。绕过：
+
+```bash
+node node_modules/next/dist/bin/next dev -p 3000
+node node_modules/next/dist/bin/next build
+```
+
+同理，`ls` / `head` / `grep` / `mkdir` / `rm` 都可能突然找不到，用
+`C:/Users/<用户>/.workbuddy/binaries/PortableGit/versions/1.2.0/usr/bin/<cmd>.exe`
+的绝对路径，或者干脆用 `node -e`。
 
 ---
 
@@ -406,18 +458,20 @@ npx next build
 
 4. ~~恢复 GitHub 推送~~ → 已推平到 `6066265`（方法见第 6.4 节）。
 5. ~~填上牌面素材的授权空白~~ → 已写明 AI 生成（见第 5 节）。
+6. ~~字体优化~~ → 已做，见第 6.9 节：新增 `tools/subset_fonts.py`，
+   细线体 1.76 MB → **98 KB**，两个 404 消失，浏览器实测零漏字。
+   **遗留约束：改中文文案后要重跑该脚本。**
 
 ### 待做的工程项（按性价比排）
 
-6. **字体优化**：`PangMenZhengDao-XiXianTi.woff2` 转 WOFF2 + 子集化，
-   1.76 MB 可砍到 100–300 KB；`@font-face` 已预留 `.woff2` 位置，
-   丢文件进去就自动优先命中（顺带消掉那两个 404）。
 7. `public/tarot/` 3.0 MB：图集把每张牌降采样到 320×573 单元格，
    源图按这个尺寸裁一遍能省很多（**换图时顺手做，见 `docs/tarot-art-spec.md`**）。
 8. `components/ring/gui.js` 的 `textFont` 下拉只列了 `["Satoshi","Geist"]`，
    而 `params.textFont` 是 `"TheNightWatch"` —— 选任何一项都是降级。
 9. **两个线上链接合并成一个**（第 7.4 节）：等用户决定是下线旧应用释放域名，
    还是回旧工作区重发。
+10. **在百度网盘里排除 `.next` / `out` / `node_modules`**（第 6.10 节）。
+    这不是代码问题，但它是 dev server 挂掉的根因，且会反复发作。
 
 ### 需要真机复核的（数值上都对，但只有眼睛能确认）
 

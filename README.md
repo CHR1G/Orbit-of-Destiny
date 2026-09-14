@@ -219,11 +219,12 @@ splitting.
 > typeface, for local development only. It has been removed from this fork — do not
 > put it back. See [AGENTS.md](AGENTS.md).
 
-> Fonts are served as `.ttf`/`.otf` (~2.0 MB, of which 1.76 MB is the CJK face).
-> `@font-face` already lists a `.woff2` before each `.ttf`, but **those woff2 files
-> do not exist** — so every page load currently eats two 404s before falling back
-> to the TTF. Dropping real woff2 files into `public/fonts/` is a pure win and needs
-> no code change. Subsetting the CJK face would take it to 100–300 KB.
+> Fonts ship as **`.woff2`, with the `.ttf` still declared as the fallback** in
+> `@font-face`. `tools/subset_fonts.py` rebuilds the woff2 from the characters
+> the source can actually put on screen: the CJK face keeps 1,209 of its 7,834
+> glyphs and lands at **98 KB instead of 1.76 MB**. Re-run it after adding
+> Chinese copy — a character outside the subset falls back to the next family
+> in the stack *silently*, with no error to explain the one odd word.
 
 ## How it's put together
 

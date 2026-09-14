@@ -3,9 +3,14 @@
 两款字体**已经就位**，无需再下载：
 
 ```
-public/fonts/PangMenZhengDao-XiXianTi.ttf   1.76 MB   庞门正道细线体
-public/fonts/TheNightWatch.ttf                31 KB   The Night Watch
+public/fonts/PangMenZhengDao-XiXianTi.ttf    1.76 MB   庞门正道细线体（全量 6763 个汉字）
+public/fonts/PangMenZhengDao-XiXianTi.woff2    98 KB   同上，按站点用字子集化
+public/fonts/TheNightWatch.ttf                 31 KB   The Night Watch（全量）
+public/fonts/TheNightWatch.woff2                4 KB   同上，子集化
 ```
+
+`.woff2` 由 `tools/subset_fonts.py` 生成，在 `@font-face` 里排在 `.ttf`
+**前面**，所以访客只会下载到子集版本，TTF 留作兜底。
 
 来源：`C:\Users\Administrator\AppData\Local\Microsoft\Windows\Fonts\`
 
@@ -50,15 +55,46 @@ TNW 缺的 `"` `/` `·` 三个字符也会落到细线体（它有）。
 - **细线体也是 display 字体**，16px 以下发丝会断，所以正文小字仍走
   `--font-cn-sans`（系统黑体），只有标题和大字用细线体。
 
-## 体积优化（可选，未做）
+## 体积优化（已完成）
 
-1.76 MB 的 TTF 对网页偏大。生产环境建议：
+原来只有 TTF：细线体 1.76 MB，而线上访客实际上一次只用得到其中约 1,100 个汉字。
 
-1. **转 WOFF2** —— 通常压到原大小 40% 左右，且 `@font-face` 已预留
-   `.woff2` 位置，丢进去就自动优先命中（TTF 作兜底保留）。
-2. **子集化** —— 只保留页面实际用到的汉字，可砍到 100–300 KB。
-   工具：`fonttools` 的 `pyftsubset`（需要 pip 装）。
-3. 生产构建下 Next.js 会对静态资源做 gzip/brotli，TTF 大约再省一半。
+现在改为 **子集化 + WOFF2**，由 `tools/subset_fonts.py` 生成：
+
+| 文件 | 之前 | 现在 | 降幅 |
+|---|---|---|---|
+| 细线体 | 1.76 MB (TTF) | **98 KB** (woff2) | −95% |
+| The Night Watch | 31 KB (TTF) | **4 KB** (woff2) | −86% |
+
+字集不是猜的——脚本会扫描 `app/` 与 `components/`，把**站点真正能显示的
+每一个字符**收进来（含 `ring/tarot.js`、`ring/deck78.js` 里的全部牌义文案），
+再跑 `pyftsubset`。所以它跟"随便挑 3000 个常用字"是两回事：覆盖率是
+按源码算出来的，不是估的。
+
+```bash
+pip install "fonttools[woff]"        # 一次性，bundled brotli
+python tools/subset_fonts.py         # 重新生成 public/fonts/*.woff2
+python tools/subset_fonts.py --check # 只看体积，不写文件
+```
+
+### ⚠️ 改了中文文案就要重跑
+
+子集里没有的字会**静默**落到字体栈的下一档（`Source Han Serif` /
+`SimSun` 之类），没有任何报错，只是某个词换了个字形——看上去像渲染 bug，
+实际是子集过期。所以：
+
+- 新增玩法、牌义、UI 文案之后，跑一次 `python tools/subset_fonts.py`；
+- 它同时是备份策略：TTF 全量文件始终留在仓库里，`.woff2` 删掉就自动
+  退回旧行为，不会丢东西；
+- 校验方式（本次用过的）：用 fontTools 比对两个 cmap 的差集，
+  或在浏览器里把每个汉字逐个用该字体栅格化、与"不存在的字体"的栅格做比对，
+  栅格完全一致即为漏字。本次实测 **1,091 字全部覆盖，零漏字**。
+
+### 还能再小吗
+
+`docs/tarot-art-spec.md` 式的思路同样适用于字体：如果哪天文案大幅精简，
+重跑脚本会自动收窄子集。但**不建议**手工裁到刚好覆盖，那样每次改文案
+都要重新验证一遍，收益只有几十 KB。
 
 ## 验证
 
