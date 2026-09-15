@@ -1,0 +1,2 @@
+:HL["/Orbit-of-Destiny/_next/static/chunks/1fqc4w0d2he0t.css","style"]
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"/_not-found","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"4ChEJghUT_tf7-jd1q9yT"}
