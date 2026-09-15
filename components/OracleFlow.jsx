@@ -14,7 +14,7 @@ import SpreadFlow from "./SpreadFlow";
 import HoloCard from "./HoloCard";
 
 /* ------------------------------------------------------------------ *
- * 大众占卜 — the group-reading format, in four steps.
+ * The reading flow, in four steps.
  *
  * topic -> breathe -> pick -> reveal
  *
@@ -415,61 +415,74 @@ export default function OracleFlow({
     // component: a component defined inside the render pass gets a new
     // identity every time and remounts all nine on each keystroke in the
     // custom-question field below.
+    // The class list is base / sm: split because the phone tile is a
+    // different object, not a smaller one. Nine two-line 74px plates are
+    // what used to run this step 232px past the fold. Under 640px the tile
+    // keeps emoji + hook on one 44px row and drops the hint — the hint is
+    // the second thing the eye needs, and the hook already names the
+    // question on its own. From 640px up it is the original plate again.
     const renderTile = (t) => (
       <button
         key={t.id}
         onClick={() => startTopic(t.id)}
         onPointerMove={specMove}
         onPointerLeave={specLeave}
-        className="spec-btn plate group flex flex-col items-start gap-1 rounded-xl px-4 py-3 text-left transition-transform hover:-translate-y-0.5"
+        className="spec-btn plate oracle-topic-tile group flex min-h-[44px] flex-col items-start justify-center gap-0.5 rounded-lg px-3 py-2.5 text-left transition-transform hover:-translate-y-0.5 sm:min-h-0 sm:justify-start sm:gap-1 sm:rounded-xl sm:px-4 sm:py-3"
         style={{ "--spec-bright": "0.22" }}
       >
-        <div className="flex w-full items-center gap-2.5">
-          <span className="text-2xl leading-none" aria-hidden="true">
+        <div className="flex w-full items-center gap-2 sm:gap-2.5">
+          <span className="text-lg leading-none sm:text-2xl" aria-hidden="true">
             {t.emoji}
           </span>
-          <span className="cn-serif text-lg font-semibold text-[#14180f]">
+          <span className="cn-serif text-[15px] font-semibold text-[#14180f] sm:text-lg">
             {t.hook}
           </span>
         </div>
-        <span className="cn-sans text-xs text-black/45">{t.hint}</span>
+        <span className="cn-sans hidden text-xs text-black/45 sm:block">
+          {t.hint}
+        </span>
       </button>
     );
     return (
       <div
-        className="oracle-step pointer-events-auto"
+        className="oracle-step oracle-step--topic pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto flex w-full max-w-[760px] flex-col">
-          <header className="mb-5 flex items-start justify-between gap-4">
+        <div className="oracle-topic-frame mx-auto flex w-full max-w-[760px] flex-col">
+          <header className="oracle-topic-head mb-5 flex items-start justify-between gap-4">
             <div>
               <div className="flex items-baseline gap-3">
-                <span className="cn-serif element-accent text-3xl leading-none">
+                <span className="cn-serif element-accent text-2xl leading-none sm:text-3xl">
                   {card.num}
                 </span>
-                <h2 className="cn-serif text-2xl font-semibold tracking-[-0.01em]">
+                <h2 className="cn-serif text-xl font-semibold tracking-[-0.01em] sm:text-2xl">
                   {card.name}
                 </h2>
               </div>
-              <p className="cn-sans mt-2 text-sm text-black/55">
+              <p className="cn-sans mt-1.5 text-xs text-black/55 sm:mt-2 sm:text-sm">
                 以{card.name}为主牌，先选一个问题 —— 越具体，牌答得越准
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {/* The advanced entry sits next to 关闭 rather than below the
                   tiles: it should be findable without being the thing you
-                  hit by accident on the way to a daily draw. */}
+                  hit by accident on the way to a daily draw.
+
+                  On a phone the header is a pinned band, so the label
+                  collapses to the mark alone — every pixel it keeps is a
+                  pixel the tiles lose. `sr-only` rather than `hidden` so
+                  the button keeps its accessible name at that size. */}
               <button
                 onClick={() => setMode("advanced")}
                 onPointerMove={specMove}
                 onPointerLeave={specLeave}
-                className="spec-btn liquid-btn flex items-center gap-2 px-3.5 py-2 text-sm"
+                className="spec-btn liquid-btn flex items-center gap-2 px-3 py-2 text-sm sm:px-3.5"
                 style={{ "--spec-bright": "0.25" }}
               >
                 <span className="cn-serif text-base leading-none" aria-hidden="true">
                   ✦
                 </span>
-                <span>进阶玩法</span>
+                <span className="sr-only sm:not-sr-only">进阶玩法</span>
               </button>
               {closeBtn}
             </div>
@@ -477,60 +490,74 @@ export default function OracleFlow({
 
           {/* Grouped, not flat: nine unlabelled tiles read as a wall and
               people bounce. Three rows turn the same nine into a question
-              about which part of life, which is the faster decision. */}
-          <div className="oracle-topics">
-            {TOPIC_GROUPS.map((grp) => (
-              <section key={grp.id} className="oracle-topic-group">
-                <div className="oracle-topic-group-head">
-                  <span className="cn-serif">{grp.label}</span>
-                  <span className="cn-sans">{grp.desc}</span>
-                </div>
-                {/* A 3-tile row goes to 3 columns rather than 2+1 with a
-                    hole: nine tiles already cost a full screen of height,
-                    and the orphan reads as a mistake. Only from md up —
-                    below that the columns get too narrow for the hook and
-                    it wraps, which costs more height than it saves. */}
-                <div
-                  className={`grid grid-cols-1 gap-2.5 sm:grid-cols-2 ${
-                    grp.ids.length === 3 ? "md:grid-cols-3" : ""
-                  }`}
-                >
-                  {grp.ids.map((id) => {
-                    const t = TOPICS.find((x) => x.id === id);
-                    return t ? renderTile(t) : null;
-                  })}
-                </div>
-              </section>
-            ))}
+              about which part of life, which is the faster decision.
+
+              On a phone this block is the only region between the two
+              pinned bands, so it is the one thing that may ever scroll —
+              and only when the viewport is shorter than the content. The
+              header (and its 关闭) above and the question form below stay
+              put, which is the whole point: nobody should have to scroll
+              to find a button. */}
+          <div className="oracle-topic-body">
+            <div className="oracle-topics">
+              {TOPIC_GROUPS.map((grp) => (
+                <section key={grp.id} className="oracle-topic-group">
+                  <div className="oracle-topic-group-head">
+                    <span className="cn-serif">{grp.label}</span>
+                    <span className="cn-sans">{grp.desc}</span>
+                  </div>
+                  {/* A 3-tile row goes to 3 columns rather than 2+1 with a
+                      hole: nine tiles already cost a full screen of height,
+                      and the orphan reads as a mistake. Only from md up —
+                      below that the columns get too narrow for the hook and
+                      it wraps, which costs more height than it saves. */}
+                  <div
+                    className={`grid grid-cols-1 gap-1.5 sm:grid-cols-2 sm:gap-2.5 ${
+                      grp.ids.length === 3 ? "md:grid-cols-3" : ""
+                    }`}
+                  >
+                    {grp.ids.map((id) => {
+                      const t = TOPICS.find((x) => x.id === id);
+                      return t ? renderTile(t) : null;
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
           </div>
 
-          <form
-            className="oracle-custom"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (customQuestion.trim()) startTopic(CUSTOM_TOPIC_ID);
-            }}
-          >
-            <input
-              className="oracle-custom-input"
-              value={customQuestion}
-              onChange={(e) => setCustomQuestion(e.target.value)}
-              placeholder="都不是？写下你自己的问题"
-              maxLength={40}
-              aria-label="自定义问题"
-            />
-            <button
-              type="submit"
-              disabled={!customQuestion.trim()}
-              className="oracle-custom-go"
+          {/* Pinned band. The free-text entry rides here rather than inside
+              the scrollable block above: it is a way into the flow, and a
+              way in that has to be scrolled to is a way people miss. */}
+          <div className="oracle-topic-foot">
+            <form
+              className="oracle-custom"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (customQuestion.trim()) startTopic(CUSTOM_TOPIC_ID);
+              }}
             >
-              就问这个
-            </button>
-          </form>
+              <input
+                className="oracle-custom-input"
+                value={customQuestion}
+                onChange={(e) => setCustomQuestion(e.target.value)}
+                placeholder="都不是？写下你自己的问题"
+                maxLength={40}
+                aria-label="自定义问题"
+              />
+              <button
+                type="submit"
+                disabled={!customQuestion.trim()}
+                className="oracle-custom-go"
+              >
+                就问这个
+              </button>
+            </form>
 
-          <p className="mt-5 text-center text-xs text-black/35">
-            {oracle?.topic?.label || "今日"}之问 · 由你开口，也由你收尾
-          </p>
+            <p className="mt-5 text-center text-xs text-black/35">
+              {oracle?.topic?.label || "今日"}之问 · 由你开口，也由你收尾
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -697,7 +724,12 @@ export default function OracleFlow({
       className="oracle-step oracle-step--reveal pointer-events-auto"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="mx-auto flex w-full max-w-[1180px] flex-col">
+      {/* On a phone this wrapper becomes `display: contents` so the header,
+          the scrollable reading band, the action row and the footer land as
+          the four direct rows of .oracle-step--reveal's grid. On desktop it
+          stays a plain flex column and the no-scroll guarantee comes from
+          the --reveal-h arithmetic instead. */}
+      <div className="oracle-reveal-frame mx-auto flex w-full max-w-[1180px] flex-col">
         <header className="mb-5 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="text-[10px] uppercase tracking-[0.2em] text-black/40">
@@ -807,7 +839,7 @@ export default function OracleFlow({
           </div>
         </div>
 
-        <div className="mt-7 flex flex-wrap items-center gap-2.5">
+        <div className="oracle-actions mt-7 flex flex-wrap items-center gap-2.5">
           <button
             onClick={share}
             disabled={sharing}
@@ -886,7 +918,11 @@ export default function OracleFlow({
           </button>
         </div>
 
-        <p className="mt-5 text-center text-xs text-black/30">
+        {/* Pinned bottom band. Dropped under 640px: the reveal is the one
+            step with a scrollable middle, so every pixel this line keeps
+            is a pixel of the reading it costs — and it is pure cadence,
+            restating the 第 N 张 · 由你选定 already in the header. */}
+        <p className="oracle-step-foot mt-5 hidden text-center text-xs text-black/30 sm:block">
           {reveal.topic.label}之问 · 大阿卡纳 {reveal.card.zh} · 牌面已收
         </p>
       </div>

@@ -1959,9 +1959,7 @@ export default function Carousel() {
           z-0 puts it under .oracle-stage (z-20) so a reading buries it,
           which is what we want — the disclaimer belongs on the menu, not
           stapled to the answer. */}
-      <p className="tarot-colophon">
-        22 张大阿卡纳 · 牌面照见的是你已经在想的事 · 决定始终由你做
-      </p>
+      <p className="tarot-colophon">© 2026 CHR1S All rights reserved</p>
 
       {/* 001 to 100. Holds the entry at the seed until it gets there. */}
       <div
@@ -2086,7 +2084,12 @@ export default function Carousel() {
               vortexPointer.inside = false;
             }}
           >
-            <div className="flex min-h-full items-center justify-center px-4 py-6 sm:py-8">
+            {/* The gutter that keeps short content off the viewport edges.
+                The steps that fill the viewport outright (the question and
+                the reveal, on a phone) zero this out in CSS: any height
+                this wrapper adds beyond 100% pushes a 100dvh step down by
+                exactly that much and hangs its bottom band off the fold. */}
+            <div className="oracle-fill flex min-h-full items-center justify-center px-4 py-6 sm:py-8">
               {active.view === "reading" ? (
                 <OracleFlow
                   card={PROJECTS[active.i]}

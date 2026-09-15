@@ -152,7 +152,7 @@ export function preloadTarotImages() {
 }
 
 /* ------------------------------------------------------------------ *
- * 大众占卜 (group reading) — the format that actually travels.
+ * The draw flow — the format that actually travels.
  *
  * The older flow handed the visitor a card the moment they tapped a plate.
  * That reads as a horoscope widget, and it skips the two things that make

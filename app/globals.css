@@ -879,39 +879,170 @@ body[data-tone] .element-serif {
   background: rgba(180, 60, 50, 0.12);
   color: rgba(160, 40, 30, 0.95);
 }
-@media (max-width: 639px) {
+/* === Oracle on a phone — pinned bands ===============================
+   The requirement was: every button in a reading, 关闭 included, has to
+   be reachable without scrolling. At 375×812 the two long steps used to
+   run 232px (topic) and 452px (reveal) past the fold, so the last three
+   tiles and the whole action row sat off-screen.
+
+   The fix is structural, not a smaller font. Both long steps are laid
+   out as `header / body / footer` bands inside a 100dvh box: the header
+   band (which carries 关闭) and the footer bands are fixed, and only the
+   middle band may ever scroll — and only when the content is genuinely
+   taller than the screen. After the tile compaction the topic step no
+   longer overflows at all, so in practice nothing scrolls; on the reveal
+   the reading itself still does, but every button is always on screen.
+
+   639.98, not 639: the tiles and step headers now carry `sm:` Tailwind
+   classes, and Tailwind's `sm` starts at 640 — a 639 ceiling would apply
+   both the phone and the desktop answer at exactly 640. */
+@media (max-width: 639.98px) {
+  /* --- The two banded steps ------------------------- */
+  /* `.oracle-step.oracle-step--…` rather than the plain class: the
+     generic `.oracle-step { margin: auto }` rule sits later in this file,
+     and at equal specificity it would win and re-centre the step off the
+     top of the viewport. */
+  .oracle-step.oracle-step--topic,
+  .oracle-step.oracle-step--reveal {
+    margin: 0 auto;
+    height: 100dvh;
+    min-height: 0;
+    /* Notch and home-indicator gutters — the header band is the top one
+       and the action band is the bottom one, so both need the inset. */
+    padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  }
+  /* The two header buttons are pinned, so their 36px height is not a
+     reachability problem — but it is still the smallest target on the
+     screen, and it costs nothing to lift it to 42px. */
+  .oracle-topic-head button,
+  .oracle-step--reveal header button {
+    min-height: 42px;
+  }
+
+  /* --- Step 1: the question ------------------------- */
+  .oracle-step--topic {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .oracle-topic-frame {
+    height: 100%;
+    min-height: 0;
+  }
+  .oracle-topic-head {
+    flex: 0 0 auto;
+    margin-bottom: 0;
+  }
+  .oracle-topic-body {
+    /* The only region that may scroll. On a 375×812 screen it does not:
+       nine 44px tiles plus three group heads come to ~500px against
+       ~570px of band. On a short device it scrolls instead of pushing
+       关闭 off the top, which is the whole point. */
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .oracle-topic-foot {
+    flex: 0 0 auto;
+  }
+  .oracle-topic-group-head {
+    margin-bottom: 6px;
+  }
+  .oracle-topics {
+    gap: 8px;
+  }
+  .oracle-custom {
+    margin-top: 10px;
+  }
+  .oracle-custom-input {
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+  .oracle-custom-go {
+    padding: 0 14px;
+    font-size: 12px;
+  }
+  .oracle-topic-foot p {
+    margin-top: 8px;
+  }
+
+  /* --- Step 4: the reveal --------------------------- */
   .oracle-step--reveal {
-    /* Mobile keeps the page-level scroll: a 100dvh clip on a 13" phone
-       is fine on the topic/breathe steps, but the reveal reading is
-       long enough that clipping it would lose the answer. The step
-       grows to its natural height and the page scrolls. */
-    height: auto;
-    min-height: 100dvh;
-    /* All four rows fall to their content's intrinsic height — the
-       figure and copy stack vertically as the user scrolls through
-       them. 1fr in the desktop grid would collapse to 0 here because
-       the parent has no fixed height to split. */
-    grid-template-rows: auto auto auto auto;
+    /* Same four bands as the desktop grid, but the card and the copy
+       share one scrollable band rather than sitting side by side: at
+       375px a two-column split leaves the copy column ~13 characters
+       wide, which turns a long answer into a 25-line stripe and pushes
+       the action row off the screen — the exact bug being fixed here. */
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    row-gap: 10px;
+  }
+  .oracle-reveal-frame {
+    /* Dissolves the wrapper so its four children become the grid's four
+       rows. Without this, the grid below would hold exactly one item and
+       the row template would be decorative on both desktop and phone. */
+    display: contents;
   }
   .oracle-reveal {
-    /* On mobile the row has no fixed height to subtract from; let the
-       figure derive its height from its own width × aspect ratio so it
-       scales with the column instead of staying pinned at 200px. */
-    height: auto;
+    /* `--reveal-h: auto` because there is no fixed row height to subtract
+       from; the figure derives its own height from width × 100:179. */
     --reveal-h: auto;
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    align-content: start;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
   .oracle-reveal-figure {
-    /* Mobile has a single column, so the figure fills the column width
-       and the height comes from the aspect ratio. No dvh subtraction
-       here — on a phone dvh is tiny and the calc would over-constrain
-       the figure. */
-    width: min(100%, 320px);
+    /* Capped rather than column-width: at 94vw the 100:179 aspect makes
+       the plate ~630px tall, which is most of the band on its own. 170px
+       keeps the art legible and leaves the copy the majority of the room. */
+    width: min(100%, 170px);
     height: auto;
     margin: 0 auto;
   }
   .oracle-reveal-copy {
+    /* The band scrolls as a whole now, so the copy must not open a second
+       scroll region nested inside it. */
     max-height: none;
     overflow: visible;
+    padding-right: 0;
+    gap: 12px;
+  }
+  .oracle-reveal-meta {
+    padding-bottom: 10px;
+  }
+  .oracle-reveal-meta .cn-serif {
+    font-size: 20px;
+  }
+  .oracle-step--reveal header h2 {
+    font-size: 21px;
+    line-height: 1.3;
+  }
+  /* 2×2 instead of a wrap. The four buttons need ~364px on one line at
+     352px of width, so flex-wrap would leave three up and one orphaned
+     below. Two even columns read as a deliberate hierarchy: act on this
+     reading on top, start a new one underneath. */
+  .oracle-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .oracle-actions > * {
+    width: 100%;
+    justify-content: center;
+    padding: 9px 10px;
+    font-size: 13px;
+  }
+  .oracle-actions .spec-btn svg {
+    width: 14px;
+    height: 14px;
   }
 }
 
@@ -1028,6 +1159,15 @@ body[data-tone] .element-serif {
     0 0 14px rgba(255, 253, 248, 0.85),
     0 0 34px rgba(244, 240, 230, 0.9);
 }
+/* The viewport-filling reveal must not take the vertical half of that auto
+   margin. It is 100dvh tall, and the overlay wrapper around it contributes
+   32px top and bottom of its own (`.oracle-fill`), so centring the step in
+   a box that has already grown by 64px parks it 32px down and detaches its
+   footer band from the layout it was budgeted for. Two classes here purely
+   to outrank `.oracle-step` in this same cascade. */
+.oracle-step.oracle-step--reveal {
+  margin: 0 auto;
+}
 /* Readable long copy inside a step even over the busiest part of the art:
    paper-ink on a light halation. Scoped so plain labels stay subtle. */
 .oracle-step p,
@@ -1043,6 +1183,22 @@ body[data-tone] .element-serif {
    width in the whole range got both the mobile and the desktop answer. */
 @media (max-width: 639.98px) {
   .oracle-step { width: 94vw; }
+}
+
+/* A step that fills the viewport must not also take the wrapper's gutter.
+   `.oracle-fill` is `min-h-full` + `items-center` with 24px (32px from sm)
+   of its own padding top and bottom, so a 100dvh step inside it sits in a
+   box that is 48–64px taller than the viewport: `items-center` then parks
+   the step that far down the screen, and its bottom band — the action row
+   on a phone — hangs off the fold. Dropping the padding for exactly the
+   two viewport-filling steps keeps the gutter for everything that still
+   wants it: breathe, pick, the card panel, every spread step.
+   `:has()` rather than a class on the wrapper because the wrapper is
+   shared by all four overlays and only the step knows its own shape. */
+.oracle-fill:has(> .oracle-step--topic),
+.oracle-fill:has(> .oracle-step--reveal) {
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 /* ---- Topic picker ------------------------------------------------- *
