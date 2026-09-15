@@ -2566,7 +2566,18 @@ body[data-tone] .element-serif {
     z-index: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    /* `stretch`, not `center`. The rows are the only children that should
+       agree on a width, and the width they agree on has to come from the
+       sheet rather than from the longest brief: the row's own `min-width`
+       is relaxed to 0 down here (see the row block below), so with
+       `center` each of the five collapsed to its own content width and
+       then sat centred on it — five widths, ten ragged edges, and the
+       longest brief deciding how wide the panel happened to be. Stretch
+       gives every row the sheet's content box, which the sheet still
+       sizes to its widest child, so the panel keeps the width it had and
+       the rows line up inside it. The title opts back out — see
+       .play-sheet-title. */
+    align-items: stretch;
     gap: 0.42em;
     margin: 0;
     padding: 0.85em 0.9em 0.95em;
@@ -2601,10 +2612,15 @@ body[data-tone] .element-serif {
     }
   }
 
+  /* The sheet stretches its children now, so the caption has to ask to stay
+     centred — as a stretched block it would inherit text-align: start and
+     drift left with the rows it is supposed to sit over. */
   .play-sheet-title {
+    align-self: center;
     padding-bottom: 0.2em;
     font-size: 0.72em;
     letter-spacing: 0.16em;
+    text-align: center;
     color: rgba(10, 10, 10, 0.4);
   }
 
