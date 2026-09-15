@@ -986,24 +986,46 @@ body[data-tone] .element-serif {
     display: contents;
   }
   .oracle-reveal {
-    /* `--reveal-h: auto` because there is no fixed row height to subtract
-       from; the figure derives its own height from width × 100:179. */
+    /* Two rows, and the card's is the one that gives way: the copy takes
+       its natural height first (`auto`), the plate gets the remainder
+       (`1fr`). Measured at 375×812 the copy is 354px tall, the plate 304
+       and the band 549 — 121px over. No fixed plate size can be right
+       for every card, because the copy's length is data, not design; so
+       the plate stops having a size and starts having a budget. That is
+       what makes a long reading shrink the art instead of pushing the
+       last block off the fold, with nothing to re-tune when a card runs
+       long.
+       `minmax(150px, 1fr)` rather than `1fr`: the floor lives on the
+       ROW, not on the figure, so the copy is always placed below the
+       plate — a min-height on the figure would let it grow out of its
+       own track and put the name back on top of the art. 150px is where
+       a tarot card stops reading as a card; under that the band scrolls
+       as a whole rather than shrink the plate to a postage stamp. */
     --reveal-h: auto;
     height: 100%;
     min-height: 0;
     grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-    align-content: start;
+    grid-template-rows: minmax(150px, 1fr) auto;
+    gap: 10px;
+    align-content: stretch;
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }
   .oracle-reveal-figure {
-    /* Capped rather than column-width: at 94vw the 100:179 aspect makes
-       the plate ~630px tall, which is most of the band on its own. 170px
-       keeps the art legible and leaves the copy the majority of the room. */
-    width: min(100%, 170px);
-    height: auto;
+    /* Height-driven, not width-driven. The row above has already decided
+       how tall the plate may be, so the plate asks for that height and
+       lets 100:179 derive the width — one constraint, so it can never
+       letterbox. 304px is the size the plate used to be pinned at and
+       survives as a cap, so a short reading never inflates the art past
+       the art director's number; it only ever gives ground. */
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    max-height: 304px;
+    aspect-ratio: 100 / 179;
+    align-self: center;
+    justify-self: center;
     margin: 0 auto;
   }
   .oracle-reveal-copy {
@@ -1012,7 +1034,15 @@ body[data-tone] .element-serif {
     max-height: none;
     overflow: visible;
     padding-right: 0;
-    gap: 12px;
+    gap: 10px;
+    /* `flex-start`, not the desktop `center`. With `overflow: visible` and
+       content taller than the box, centring spills BOTH ways: measured at
+       375×812 the card name sat 60px above the copy's own top edge and
+       painted over the bottom 48px of the plate. It also silently hid the
+       real overflow — `scrollHeight` only measures downward from the box
+       edge, so it reported 293 against a true content height of 354. The
+       reading starts under the card and grows down. */
+    justify-content: flex-start;
   }
   .oracle-reveal-meta {
     padding-bottom: 10px;
