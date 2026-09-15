@@ -20,8 +20,8 @@
     local("庞门正道细线体"),
     local("PangMenZhengDao-XiXian"),
     local("PangMenZhengDao XiXianTi"),
-    url("/fonts/PangMenZhengDao-XiXianTi.woff2") format("woff2"),
-    url("/fonts/PangMenZhengDao-XiXianTi.ttf") format("truetype");
+    url("../public/fonts/PangMenZhengDao-XiXianTi.woff2") format("woff2"),
+    url("../public/fonts/PangMenZhengDao-XiXianTi.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -32,8 +32,8 @@
   src:
     local("The Night Watch"),
     local("TheNightWatch-Regular"),
-    url("/fonts/TheNightWatch.woff2") format("woff2"),
-    url("/fonts/TheNightWatch.ttf") format("truetype");
+    url("../public/fonts/TheNightWatch.woff2") format("woff2"),
+    url("../public/fonts/TheNightWatch.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -46,7 +46,7 @@
    both resolve to a cut rather than a synthesised one. */
 @font-face {
   font-family: "Satoshi";
-  src: url("/Satoshi-Regular.otf") format("opentype");
+  src: url("../public/Satoshi-Regular.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -54,7 +54,7 @@
 
 @font-face {
   font-family: "Satoshi";
-  src: url("/Satoshi-Medium.otf") format("opentype");
+  src: url("../public/Satoshi-Medium.otf") format("opentype");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -63,7 +63,7 @@
 /* Numbers, years and the load counter. */
 @font-face {
   font-family: "Geist";
-  src: url("/Geist-Regular.ttf") format("truetype");
+  src: url("../public/Geist-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;

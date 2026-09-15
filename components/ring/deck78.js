@@ -8,6 +8,8 @@
 //     Swords   air      thought, communication, conflict, truth
 //     Pentacles earth   money, work, health, the practical
 
+import { asset } from "../../lib/asset.js";
+
 export const SUITS = [
   {
     id: "wands",
@@ -401,7 +403,7 @@ export const MINOR_ARCANA = SUITS.flatMap((suit) =>
       up: m.up,
       down: m.down,
       tone: rank.tone,
-      img: `/tarot/minor_${suit.file}_${nn}.webp`,
+      img: asset(`/tarot/minor_${suit.file}_${nn}.webp`),
     };
   }),
 );

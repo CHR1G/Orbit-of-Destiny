@@ -5,6 +5,7 @@
 // (Extension is explicit so the file also imports under plain Node ESM,
 // which is how the deck-integrity check script loads it.)
 import { MINOR_ARCANA, SUITS, SUIT_BY_ID } from "./deck78.js";
+import { asset } from "../../lib/asset.js";
 
 // 22 Major Arcana with upright / reversed readings.
 export const MAJOR_ARCANA = [
@@ -37,7 +38,7 @@ export const MAJOR_ARCANA = [
 //   minor_<suit>_NN.webp       01 Ace .. 14 King per suit (see deck78.js)
 //   back.webp
 MAJOR_ARCANA.forEach((c, i) => {
-  c.img = `/tarot/major_${String(i).padStart(2, "0")}.webp`;
+  c.img = asset(`/tarot/major_${String(i).padStart(2, "0")}.webp`);
   c.arcana = "major";
 });
 // The complete 78-card deck: 22 majors (above) + 56 minors. Majors first
@@ -76,7 +77,7 @@ export function buildSpreadSeed(card, spreadId, topicId, question, baseSeed, shu
   ].join("|");
 }
 
-export const TAROT_BACK = "/tarot/back.webp";
+export const TAROT_BACK = asset("/tarot/back.webp");
 
 export function todayStr() {
   const d = new Date();

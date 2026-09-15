@@ -21,6 +21,7 @@
 
 import { useState } from "react";
 import HoloCard from "./HoloCard";
+import { asset } from "../lib/asset.js";
 
 // The deck's own light / shadow / neutral axis, spelled out. Same three
 // values the reading copy is keyed on, so the label cannot drift from it.
@@ -86,7 +87,7 @@ export default function CardDetail({
           <HoloCard
             src={src}
             alt={a.en}
-            backSrc="/tarot/back.webp"
+            backSrc={asset("/tarot/back.webp")}
             radius={16}
             maxTilt={11}
             reversed={reversed}

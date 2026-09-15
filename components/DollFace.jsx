@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { asset } from "../lib/asset.js";
+
 /* The doll, as photographic layers rather than as drawn SVG.
  *
  * The first pass built this face out of gradients and paths, and it read as an
@@ -159,13 +161,13 @@ import { useEffect, useRef } from "react";
  *
  * Regenerate any of these with tools/reencode_doll.py. */
 const PLATES = {
-  body: "/doll/body.webp",
-  lidLeft: "/doll/lid-left.png",
-  lidRight: "/doll/lid-right.png",
-  eyeLeft: "/doll/eye-left.png",
-  eyeRight: "/doll/eye-right.png",
-  eyeWhite: "/doll/eye-white.webp",
-  highlight: "/doll/highlight.webp",
+  body: asset("/doll/body.webp"),
+  lidLeft: asset("/doll/lid-left.png"),
+  lidRight: asset("/doll/lid-right.png"),
+  eyeLeft: asset("/doll/eye-left.png"),
+  eyeRight: asset("/doll/eye-right.png"),
+  eyeWhite: asset("/doll/eye-white.webp"),
+  highlight: asset("/doll/highlight.webp"),
 };
 
 /* Native size of the plates, and the canvas every layer is registered to. */
