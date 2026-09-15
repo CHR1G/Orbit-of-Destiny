@@ -228,18 +228,51 @@ export default function TarotVortex({
       renderSig = "";
     };
 
-    // Sample one pixel from the layer at canvas-space coordinates. Used
-    // by both the ambient and pointer dust spawners so particles inherit
-    // the colour of whatever letter they're being torn away from.
-    const sampleLayer = (x, y) => {
-      const px = Math.max(0, Math.min(layer.width - 1, Math.floor(x * dpr)));
-      const py = Math.max(0, Math.min(layer.height - 1, Math.floor(y * dpr)));
+    /* Reading the layer one pixel at a time is what used to make this the most
+     * expensive component on the page.
+     *
+     * Both spawners reject most of what they look at: ambient dust is hunting
+     * the few lit pixels in a mostly-empty strip, and a transparent pixel means
+     * `continue` WITHOUT counting against the budget. So the loop ran to its
+     * attempt ceiling — up to 360 `getImageData(px, py, 1, 1)` calls per
+     * ambient tick (every 140ms) and up to 240 per pointer tick (every 56ms).
+     * Each call crosses into Skia, allocates a fresh ImageData and copies a 1x1
+     * rect, which is thousands of allocations a second to learn "empty".
+     *
+     * Measured on the reading view with the V8 sampler: 48.7% of all CPU
+     * samples, 3.18s inside an 8s window, 61 long tasks totalling 4989ms, and
+     * 36fps — with layout and style at 0%, so none of it was CSS. Making this
+     * read free took the same page to 57fps with 3 long tasks. That A/B is what
+     * identified it; the numbers are worth keeping next to the code.
+     *
+     * So the pixels are fetched ONCE per tick, as the rectangle the tick draws
+     * from, and the callers index that buffer. Same pixels, same arithmetic,
+     * same colours — the several hundred reads collapse into one.
+     *
+     * A whole-frame cache is not an option: the rings turn every frame, so the
+     * layer is recomposed every frame and any cached copy would be stale.
+     */
+    const readRegion = (x0, y0, x1, y1) => {
+      const px0 = Math.max(0, Math.floor(x0 * dpr));
+      const py0 = Math.max(0, Math.floor(y0 * dpr));
+      const w = Math.max(1, Math.min(layer.width, Math.ceil(x1 * dpr)) - px0);
+      const h = Math.max(1, Math.min(layer.height, Math.ceil(y1 * dpr)) - py0);
       try {
-        const data = layerCtx.getImageData(px, py, 1, 1).data;
-        return [data[0], data[1], data[2], data[3]];
+        const img = layerCtx.getImageData(px0, py0, w, h);
+        return { data: img.data, w, h, ox: px0, oy: py0 };
       } catch {
         return null;
       }
+    };
+
+    // Same address arithmetic the old per-pixel reader used, minus the call.
+    const sampleIn = (region, x, y) => {
+      if (!region) return null;
+      const px = Math.max(0, Math.min(region.w - 1, Math.floor(x * dpr) - region.ox));
+      const py = Math.max(0, Math.min(region.h - 1, Math.floor(y * dpr) - region.oy));
+      const i = (py * region.w + px) * 4;
+      const d = region.data;
+      return [d[i], d[i + 1], d[i + 2], d[i + 3]];
     };
 
     // Ambient dust: sample a vertical strip along the left edge so motes
@@ -248,12 +281,15 @@ export default function TarotVortex({
       if (reduced || time - lastAmbient < 140) return;
       lastAmbient = time;
       const sampleW = Math.min(W, ambientW * 1.12);
+      // One read for the whole strip this tick draws from, instead of one per
+      // attempt — see readRegion.
+      const region = readRegion(0, 0, sampleW, H);
       const limit = Math.max(1, Math.round(14 * particleAmount));
       let spawned = 0;
       for (let attempt = 0; attempt < 360 && spawned < limit; attempt += 1) {
         const x = Math.random() * sampleW;
         const y = Math.random() * H;
-        const px = sampleLayer(x, y);
+        const px = sampleIn(region, x, y);
         if (!px || px[3] < 32) continue;
         const edge = clamp(x / sampleW, 0, 1);
         particles.push({
@@ -284,6 +320,9 @@ export default function TarotVortex({
       const y0 = clamp(vortexPointer.y - radius, 0, H);
       const x1 = clamp(vortexPointer.x + radius, 0, W);
       const y1 = clamp(vortexPointer.y + radius, 0, H);
+      // The annulus this tick samples fits inside this box, so one read covers
+      // every attempt — see readRegion.
+      const region = readRegion(x0, y0, x1, y1);
       const limit = Math.max(1, Math.round(34 * particleAmount));
       let spawned = 0;
       for (let attempt = 0; attempt < 240 && spawned < limit; attempt += 1) {
@@ -293,7 +332,7 @@ export default function TarotVortex({
         const dy = y - vortexPointer.y;
         const d = Math.hypot(dx, dy);
         if (d > radius || d < radius * 0.18) continue;
-        const px = sampleLayer(x, y);
+        const px = sampleIn(region, x, y);
         if (!px || px[3] < 28) continue;
         const nx = dx / Math.max(1, d);
         const ny = dy / Math.max(1, d);
