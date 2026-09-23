@@ -304,15 +304,60 @@ export default function DollFace() {
       lastPointer = performance.now();
     };
 
+    /* The stage's box, cached.
+     *
+     * This used to be `stage.getBoundingClientRect()` inside the loop, and that
+     * one call was the most expensive thing in this file — much more so than
+     * the six attribute writes it fed. Reading a layout box forces the browser
+     * to flush pending style and layout first, and the writes below dirty the
+     * SVG every frame, so the *next* frame's read had to re-run style and
+     * layout over the whole document before it could answer. Read, write,
+     * read, write: a forced synchronous layout per frame, sixty times a second,
+     * for a value that only changes when the window does.
+     *
+     * `.doll` is `position: fixed`, so the box does not move with scroll and
+     * only a resize can change it — a ResizeObserver on the stage plus a window
+     * resize listener covers every case the old per-frame read did. */
+    const box = { left: 0, top: 0, width: 0, height: 0, k: 0 };
+    const measure = () => {
+      const r = stage.getBoundingClientRect();
+      box.left = r.left;
+      box.top = r.top;
+      box.width = r.width;
+      box.height = r.height;
+      // Screen px -> plate px. Recomputed with the box because every caller
+      // divides by it.
+      box.k = r.width / ART_W;
+    };
+    measure();
+
+    /* Last value written per node.
+     *
+     * The pupil follow is asymptotic — `cur += (target - cur) * 0.14` approaches
+     * the target without ever arriving — so without a guard the loop keeps
+     * writing six transform attributes a frame, forever, to express a movement
+     * of a thousandth of a pixel. Suppressing anything below `EPS` leaves a
+     * standing positional error no larger than the band, which at 0.05 viewBox
+     * units is under a twentieth of a screen pixel; in exchange, a face whose
+     * visitor has stopped moving the mouse stops touching the DOM. */
+    const EPS = 0.05;
+    const lastWritten = new Map();
+
     /* Writes the SVG transform *attribute* rather than a CSS property: it
      * needs no `transform-box` gymnastics to land in plate units. */
     const place = (node, x, y) => {
-      if (node) node.setAttribute("transform", `translate(${x.toFixed(2)} ${y.toFixed(2)})`);
+      if (!node) return;
+      const prev = lastWritten.get(node);
+      if (prev && Math.abs(prev[0] - x) < EPS && Math.abs(prev[1] - y) < EPS) {
+        return;
+      }
+      lastWritten.set(node, [x, y]);
+      node.setAttribute("transform", `translate(${x.toFixed(2)} ${y.toFixed(2)})`);
     };
 
     const tick = (now) => {
       raf = requestAnimationFrame(tick);
-      const rect = stage.getBoundingClientRect();
+      const rect = box;
       if (!rect.width) return;
 
       if (now - lastPointer > IDLE_AFTER && now > nextWander) {
@@ -379,10 +424,20 @@ export default function DollFace() {
     };
 
     window.addEventListener("pointermove", onMove, { passive: true });
+    /* The two events that can invalidate the cached box. resize covers the
+       viewport; the observer also covers the 480px breakpoint below, where
+       `.doll` becomes `display: none` and the cached width has to follow it to
+       0 or the loop would keep writing into a hidden tree. */
+    window.addEventListener("resize", measure);
+    const ro =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    ro?.observe(stage);
     raf = requestAnimationFrame(tick);
 
     return () => {
       window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("resize", measure);
+      ro?.disconnect();
       cancelAnimationFrame(raf);
     };
   }, []);

@@ -1766,13 +1766,14 @@ body[data-tone] .element-serif {
    hairline conic-gradient ring (.play-border), a translucent body (here), and
    the content — and the first two of those are what changed today.
 
-   The body is GREY. It was 米白 for three rounds: the doll's own warm
-   off-white, picked so the buttons would read as the same material as the
-   figure. On a #fafafa page with a pink doll that was a defensible argument,
-   and it stopped being one the moment the visitor looked at the column and
-   read the warm off-white as beige. #f4f5f8 down to #dfe4ec, blue-leaning by
-   a couple of degrees of hue, which is the whole difference between a neutral
-   grey and a tan one next to this doll.
+   The body is GREY, one tone, and it is the row's own again rather than the
+   page's. It was 米白 for three rounds — the doll's own warm off-white, picked
+   so the buttons would read as the same material as the figure — then no body
+   at all for one, because the visitor read that off-white as beige and taking
+   the fill away was the answer at the time. It is back at #eef0f4 for a reason
+   that only turned up when the disc went light: with nothing between five pale
+   discs and the page there was no step left to read them against. The whole
+   ladder is written out in the .play-row block below.
 
    The ink stays #0a0a0a and no longer needs a halo under it. Against the metal
    the label carried a white text-shadow because the bands beneath it moved;
@@ -1807,30 +1808,31 @@ body[data-tone] .element-serif {
      reference is unambiguously a pill. The phone sheet puts the two-line
      layout back and restores 1.1em with it — see the sheet's block. */
   border-radius: 999px;
-  /* Light grey, cold, and translucent. 米白 for three rounds and then chrome —
-     the visitor asked for neither on the way here, and this is the third
-     answer: a neutral grey one step down from the page's own #fafafa, so the
-     column reads as five objects without any of them announcing a colour.
-     Blue-leaning by about two degrees of hue, which is the whole difference
-     between a neutral grey and a tan one standing next to this doll. */
-  border: 1px solid rgba(255, 255, 255, 0.62);
-  background: linear-gradient(
-    180deg,
-    rgba(247, 248, 251, 0.92) 0%,
-    rgba(236, 239, 244, 0.86) 46%,
-    rgba(223, 228, 236, 0.82) 100%
-  );
-  /* The reference's shadow pair, softened. It ships 0 15px 35px at 0.1 and
-     0 5px 15px at 0.05, which is right for one button the size of a hand;
-     five of them stacked with that much drop under each would pool the gaps
-     between them into a single grey mass. Half the spread and a quarter of the
-     alpha, plus the two inset lines that give the glass its wall. */
-  box-shadow:
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.92),
-    inset 0 -1px 0 rgba(92, 102, 120, 0.07),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.42),
-    0 1px 2px rgba(92, 102, 120, 0.05),
-    0 8px 18px -12px rgba(92, 102, 120, 0.30);
+  /* The capsule has a body again, and this reverses the long note that used to
+     sit here ("NO BODY AT ALL — the row is the page").
+   *
+   * That note was written for a different column. Its reasoning was that the
+   * disc was the one dark object in the menu, so the row beside it had to be
+   * nothing but the page — five capsules with fills would have read as five
+   * objects laid on the background instead of five entries written on it. The
+   * visitor has since moved the disc to a light grey, and that is what breaks
+   * the argument: a column of pale discs on an unbroken #fafafa field has
+   * nothing separating it from the field at all.
+   *
+   * One step, not a plate. Page #fafafa, row #eef0f4, disc #d9dde5 — each one
+   * step below the last, and the disc is still the heaviest of the three. That
+   * is the hierarchy the earlier rounds kept missing, because they made the
+   * row match the page *and* the disc go black: two steps of separation with
+   * the middle one thrown away.
+   *
+   * Still no shadow. A drop shadow under a pale fill is exactly what pooled
+   * the five into one grey mass the first time this was tried; the fill is a
+   * colour step, and the ring (.play-border) is still the only thing drawing
+   * an edge. The border stays declared and transparent so the row's box does
+   * not change size — it is the geometry .play-border is cut against. */
+  border: 1px solid transparent;
+  background: #eef0f4;
+  box-shadow: none;
   /* Full, and `isolation: isolate` is what makes that safe.
      The sheen is `mix-blend-mode: screen`, and it has always blended against
      the row rather than against the page — not by intent but as a side effect
@@ -1867,12 +1869,23 @@ body[data-tone] .element-serif {
  * wobble an ellipse about its own centre, which is why the halo this replaces
  * rotated a child too.
  *
- * The colours are the reference's own, at its own strength, and that is worth
- * a line because every other value ported from it was softened. A cyan and a
- * yellow band on a pale grey page is a loud object — but it is the point of
- * the design rather than an accident of it, and a muted version reads as a
- * grey pill with a smudge on the rim. If it wants toning down, the two hex
- * stops are the only numbers to move. */
+ * SILVER now, and the case for the cyan and the yellow is worth recording
+ * because it was the exact opposite argument. Those two were the reference's
+ * own colours, kept at full strength deliberately: a cyan and a yellow band on
+ * a pale page is a loud object, and the defence was that muted, it read as a
+ * grey pill with a smudge on the rim. That defence assumed the row had a body
+ * for the colours to sit on. With the body gone (see .play-row) the ring is
+ * the only thing drawing the capsule at all, and two saturated hues stop being
+ * an accent *on* an object and become the object — five coloured outlines
+ * competing with the doll, the cards and the ring behind them.
+ *
+ * Silver, then — and not white. The band turns between #ffffff and a cool
+ * #9fb0c8 for the same reason the orb's fill is banded: alternating light and
+ * dark is what the eye accepts as metal. It is also a hard requirement here
+ * rather than a taste call — a single white stop on a #fafafa page is
+ * invisible, so the darker stop is the one that makes the sweep visible at
+ * all, and the white stops are what make it read as a highlight travelling
+ * along the edge instead of as a grey line. */
 .play-border {
   position: absolute;
   inset: 0;
@@ -1899,23 +1912,40 @@ body[data-tone] .element-serif {
   position: absolute;
   left: 50%;
   top: 50%;
-  /* Square, and generously oversized. A square is the cheaper of the two ways
-     to guarantee a child that still covers the rim at every angle of its turn
-     (the other is a circle, which cannot be written as a percentage pair).
-     Whatever the capsule's aspect, the half-diagonal is far inside this. */
-  width: 300%;
+  /* Square, and sized to the diagonal instead of "generously oversized".
+   *
+   * A square is the cheaper of the two ways to guarantee a child that still
+   * covers the rim at every angle of its turn (the other is a circle, which
+   * cannot be written as a percentage pair). Rotating about its own centre,
+   * the square only has to contain the capsule's half-diagonal — any side
+   * S >= sqrt(w^2 + h^2) covers the ring at every angle. The capsules are wide
+   * and short: 130x36 at a 1280px window, so sqrt(130^2 + 36^2) = 135px, and
+   * 112% of the width is 146px. That is an 8% margin, and it holds for any
+   * aspect ratio up to a capsule twice as tall as these.
+   *
+   * It used to be 300%: a 390x390 layer rasterised every frame to paint a
+   * 130x36 rim, i.e. 32x the pixels, and the mask above throws every one of
+   * the extra ones away. This is a pure cost fix. A conic gradient varies with
+   * angle and not with radius, so the colours landing on the ring are the same
+   * ones at any layer size — shrinking it cannot change what is drawn.
+   *
+   * Measured at 4x CPU throttling: ~9% of the renderer's main thread. */
+  width: 112%;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   background: conic-gradient(
     from 0deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.9) 10%,
-    #00e5ff 20%,
-    #ffeb3b 30%,
+    #ffffff 7%,
+    #9fb0c8 15%,
+    #ffffff 24%,
+    rgba(214, 223, 238, 0.5) 31%,
     transparent 40%,
     transparent 60%,
-    rgba(255, 255, 255, 0.6) 70%,
-    transparent 80%
+    rgba(214, 223, 238, 0.55) 68%,
+    #ffffff 74%,
+    rgba(255, 255, 255, 0.4) 78%,
+    transparent 84%
   );
   /* 4s, the reference's own period. It reads as fast for a 34px object, and
      that is deliberate: the sweep is the one thing on this row that is never
@@ -1959,48 +1989,55 @@ body[data-tone] .element-serif {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.5em;
-  height: 2.5em;
+  /* The disc, and the only figure that describes it. Everything the orb does
+     is quoted against this: the WebGL host is 3.6x it, and the adapter reads
+     the resolved pixels back off this box after layout. It has to be measured
+     rather than computed because the column's type is in vw — the layout has
+     already resolved the one number that agrees with it. 2.5em -> 2.6em is the
+     whole of the size change the new button asked for. */
+  width: 2.6em;
+  height: 2.6em;
+  --lm-h: 2.6em;
   border-radius: 50%;
-  /* Clips the sweeper below to the disc. */
-  overflow: hidden;
-  background:
-    /* Fixed specular, top-left — the half of the highlight that does not move.
-       Nearly opaque white: on a light disc a soft specular is just a lighter
-       white and stops registering as a light source. */
-    radial-gradient(
-      120% 120% at 32% 24%,
-      rgba(255, 255, 255, 0.98) 0%,
-      rgba(255, 255, 255, 0) 52%
-    ),
-    /* The far-side shade. A white disc with no shaded edge has no volume at
-       all, and this crescent is what turns the circle into a sphere. */
-    radial-gradient(
-      96% 96% at 74% 84%,
-      rgba(255, 255, 255, 0) 42%,
-      rgba(126, 139, 160, 0.42) 100%
-    ),
-    /* Body: silver, banded on a diagonal — white, a cool step down, back up,
-       the deepest band two-thirds along, and a last step at the far corner. */
-    linear-gradient(
-      168deg,
-      #ffffff 0%,
-      #e6ebf3 22%,
-      #fbfcfe 40%,
-      #c4cddb 62%,
-      #eef2f8 78%,
-      #a9b4c6 100%
-    );
+  /* VISIBLE, and it is load-bearing twice over: the WebGL host is 3.6x the
+     disc so the bloom has somewhere to fall, and the selected row's seat is
+     drawn *outside* the disc. What the clip was ever for was the conic
+     sweeper, and that is off — see ::before. */
+  overflow: visible;
+  /* 浅灰 — the disc's body, and it is no longer the column's one dark object.
+   *
+   * It was #1a1d23, a near-black plate justified by the metal sitting on it: a
+   * metal needs something dark to be metal against. The visitor's read is that
+   * at rest it is simply too heavy on a #fafafa page, and the tone is now one
+   * step under the row instead of three under it. The metal has not lost its
+   * ground — it takes it on hover, from the plate inside the frame, where the
+   * ground only has to be dark while the metal is actually up. That ladder
+   * lives on .plate in the adapter's destination style; this rule only has to
+   * hold the rest state.
+   *
+   * Which it does in two places at once, and they have to agree. This box is
+   * the disc on the lite tier, where no iframe is ever mounted, and it is also
+   * the disc on the full tier until the frame reports itself ready. After that
+   * the plate covers it exactly and the shadow is handed over (see the :has()
+   * rule below), so the values here are the plate's own rest values re-quoted
+   * in em — h = 2.6em against the plate's --h.
+   *
+   * The drop lightens with the body, and that is not a detail. The reference's
+   * three alphas (rgba(0,0,0,.72/.62/.42)) were chosen to float a black plate
+   * off a black pool, and under a light disc they read as a dark ring bolted
+   * around a pale one. Cool 20/15/10% at the reference's own three offsets
+   * instead. The bezel takes over the edge the black body used to give free. */
+  background: #d9dde5;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.92),
-    inset 0 1px 1px rgba(255, 255, 255, 1),
-    inset 0 -2px 3px rgba(120, 133, 154, 0.45),
-    /* A short, tight seat, and it stays short for the reason it always did: a
-       wide dark shadow reads as a smudge on the pale glass rather than as the
-       disc sitting in it. Cold now, to match the body it falls on. */
-    0 1px 2px rgba(58, 68, 88, 0.22);
+    inset 0 0 0 1px rgba(96, 110, 136, 0.35),
+    0 0.26em 0.57em rgba(58, 70, 96, 0.2),
+    0 0.78em 1.72em rgba(58, 70, 96, 0.15),
+    0 1.61em 3.38em rgba(58, 70, 96, 0.1);
 }
-/* 液态流光 — the sheen inside the disc, always moving.
+/* 液态流光 — the sheen inside the disc, and it only turns once the row is the
+ * selected one. It used to run always, which was right when the disc carried a
+ * silver lens and a sigil; with both gone, light at rest would contradict the
+ * one thing the selected state has to say.
  *
  * Two bands of unequal width rather than one. A single band reads as a
  * highlight going round; uneven bands at a different period from the rim's
@@ -2017,11 +2054,21 @@ body[data-tone] .element-serif {
  * highlight *and* a shade band, and the disc gets the two things polished metal
  * actually does as it turns. */
 .play-orb::before {
+  /* OFF — not deleted, and for the same reason .play-sheen is off: the disc's
+     turn has been handed to a real liquid-metal field, and a second conic
+     sweeping underneath it would be two clocks in one bead. What is left to
+     keep is the state this rule exists to express — the disc stays quiet until
+     the row is selected — and that is now carried by the seat outside the disc,
+     which reads whether there is metal in it or not. */
+  display: none;
   content: "";
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 300%;
+  /* Same diagonal rule as .play-border::before, on a square disc: the layer
+     only has to contain the disc's diagonal, sqrt(2) * 28 = 40px, and 160% of
+     28px is 45px. It was 300% — an 84x84 layer to fill a 28px circle. */
+  width: 160%;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   background: conic-gradient(
@@ -2044,11 +2091,169 @@ body[data-tone] .element-serif {
      bands are already soft enough by construction, since a conic gradient's
      falloff is the ramp between its own stops. */
   animation: play-orb-flow 7.6s linear infinite;
+  /* Held invisible until the row is selected — see .play-row.is-on .play-orb —
+     and, for the same reason, held *paused*.
+   *
+   * The previous version kept all five turning from page load at opacity 0, on
+   * the argument that the sweep should already be mid-rotation when it fades in
+   * rather than starting at 0deg on the click. The argument does not survive
+   * contact with the numbers: five stacked conic gradients rotating in a column
+   * that is invisible, forever, is the single largest avoidable cost on the
+   * page, and the thing it buys — which angle the visitor happens not to see at
+   * the instant it becomes visible — is not a thing anyone can perceive. The
+   * sweep still arrives turning; it just starts its turn when there is
+   * something to turn for.
+   *
+   * `paused` rather than `animation: none` so the compositor keeps the
+   * animation object and the state flip is a resume, not a fresh start. */
+  animation-play-state: paused;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 @keyframes play-orb-flow {
   to {
     transform: translate(-50%, -50%) rotate(1turn);
   }
+}
+
+/* ── 液态金属圆钮 — ThreeUI's LiquidMetalButton, circle variant ─────────────
+ *
+ * The disc is no longer drawn by this stylesheet. It is a real WebGL button:
+ * the published liquid-metal field — a dispersed prismatic band family, a
+ * travelling rim, a soften/bloom post chain and a cursor well that drags the
+ * sheet — running in an iframe whose markup is
+ * components/threeui/liquid-metal-button.html, vendored byte for byte from
+ * https://threeui.com/source-code/liquid-metal-button.json (sha256 76624e88…).
+ * components/threeui/LiquidMetalCircle.jsx is the adapter: it composes the
+ * circle variant's own transforms, leaves the renderer untouched, and carries
+ * the six deliberate departures from the standalone reference — the ground, the
+ * plate's tone ladder, the hover-gated shimmer, the idle frame skip, the
+ * dropped webfont and the replayed pointer.
+ *
+ * What is left here is the host box, the disc it sits on, and the seat the
+ * selected row draws:
+ *
+ *  · the host is 3.6x the disc and centred on it, because the metal's bloom
+ *    needs somewhere to fall. The reference keeps the same kind of margin
+ *    around its button; the padding is transparent light, so the box is
+ *    invisible, and it is pointer-transparent everywhere except over the disc
+ *    itself — which is what keeps the row's own hover and the label beside it
+ *    answering normally. The iframe is a document, so that is arranged from
+ *    inside it; see the destination style in the adapter.
+ *  · `.play-orb` keeps painting the disc whatever the host does; the plate
+ *    covers it exactly. Only the shadow is handed over, and only once the
+ *    metal is actually up.
+ *  · nothing here is tier-dependent. On a lite machine the adapter never
+ *    mounts the iframe at all and the disc below is simply what you see.
+ */
+.play-orb .liquid-metal-button {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--lm-h) * 3.6);
+  height: calc(var(--lm-h) * 3.6);
+  transform: translate(-50%, -50%);
+  /* The published host rules with the demo's own page colour taken out of
+     them — this page is the ground now, not #070708. */
+  background: none;
+  /* The box is light, not a target. It is 3.6x the disc so the bloom has
+     somewhere to fall, and on this menu's 46px row pitch those boxes overlap
+     their neighbours by ~71px — while an <iframe> stays an opaque target in the
+     *parent's* hit test even where nothing inside it accepts a pointer, so the
+     `pointer-events: none` the document puts on its own html/body/.stage does
+     not make the frame transparent. Five of them stacked therefore meant every
+     orb swallowed the next one's pointer: measured, orbs 1-4 reported hot:false
+     for a real pointer and never lit, orb 5 (nothing above it) did, and no row
+     ever matched :hover. The disc-sized element below is the only target. */
+  pointer-events: none;
+}
+/* The disc, and the only thing in the host that answers a pointer. Exactly
+   `--lm-h` across, centred on the box, sitting after the frame so it is the
+   topmost target. The adapter replays what it hears into the frame as the
+   button's own pointer events, so the published interaction graph is still what
+   reacts — see DESTINATION_POINTER in components/threeui/liquid-metal-circle.source.js. */
+.play-orb .liquid-metal-button__hit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--lm-h);
+  height: var(--lm-h);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.play-orb .liquid-metal-button__frame {
+  /* The published frame rules, kept whole except for the demo's own page
+     colour. The sizing half of them is not decoration: an <iframe> is a
+     replaced element, and `inset: 0` alone does NOT stretch one — with
+     `width: auto` it keeps its intrinsic 300x150 box and `left: 0` wins while
+     `right: 0` is dropped as over-constrained. Without `width/height: 100%`
+     the document centres its 123px stage inside a 300x150 viewport, which
+     puts the metal 87px to the right and 12px below the disc it belongs to.
+     Measured before the fix: button centre (1355, 274) for an orb centred on
+     (1268, 262) — the orb you saw was the CSS plate alone, and the shader was
+     painting on the page beside it. */
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  /* The frame is never the target: see the note on .liquid-metal-button above.
+     The disc-sized sibling carries the pointer instead. */
+  pointer-events: none;
+  /* …and it carries the same demo colour on the element itself. */
+  background: transparent;
+  /* Published reveal: the frame fades up on the frame the document is ready,
+     which is also the frame the plate takes the shadow over (:has(is-ready)
+     below), so the two hand-offs land together. */
+  opacity: 0;
+  transition: opacity 180ms ease-out;
+}
+.play-orb .liquid-metal-button__frame.is-ready {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .play-orb .liquid-metal-button__frame {
+    transition: none;
+  }
+}
+/* The plate draws the shadow from here on. Keyed on `is-ready` rather than on
+   the host existing, so the handover happens on the frame the metal is on
+   screen: switching on `:has(.liquid-metal-button)` would blink the disc out
+   for however long the iframe takes to parse and compile its shaders. */
+.play-orb:has(.liquid-metal-button__frame.is-ready) {
+  box-shadow: none;
+}
+/* The selected row's seat: one silver ring around the orb, drawn above it so
+   it reads the same whether the orb is metal or the disc.
+ *
+ * It used to be a white fill inside the disc. That was the signal while the
+ * disc was a hole in the page, and it had to move outward once the disc became
+ * an opaque plate with light nobody could see behind it. The move is still
+ * right; what changed with the disc's tone is which half of the pair carries
+ * the mark. On a near-black disc the white was doing the work. On a #d9dde5
+ * one the white inner ring is only two steps off its own ground, so the cool
+ * outer ring and the halo are promoted: they land on the row's #eef0f4, where
+ * they have somewhere to be dark against. So the
+ * standing state moves outward — and it stands still, because this round's
+ * instruction is that the silver only moves under the pointer. A highlight
+ * travelling round the row the page opens on would be exactly what that
+ * instruction removes. */
+.play-orb::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.9),
+    0 0 0 1px rgba(126, 143, 172, 0.8),
+    0 0 18px 4px rgba(168, 186, 216, 0.55);
+  transition: opacity 0.3s ease;
 }
 /* The hover highlight, and the whole point of this row.
  *
@@ -2105,108 +2310,94 @@ body[data-tone] .element-serif {
   position: relative;
   z-index: 2;
 }
+/* Hover is a lift, and nothing else.
+ *
+ * With no body to light up and the cool wash retired (see ::after below), the
+ * only honest feedback left is position: the row rises a pixel under the
+ * pointer. Deliberate rather than a leftover — colour on hover would
+ * re-introduce the very state the visitor narrowed down to the selected row's
+ * disc, and a row that lights up merely at being pointed at makes the standing
+ * selection harder to find, not easier. */
 .play-row:hover,
 .play-row:focus-visible {
   opacity: 1;
   /* `translate`, not `transform:` — transform belongs to the tilt now, and
      writing it here would overwrite the pointer's angles on every hover. */
   translate: 0 -1px;
-  border-color: rgba(255, 255, 255, 0.85);
-  /* Still translucent, and lighter rather than opaque: a surface that closes up
-     at the exact moment the visitor leans in hides whatever is behind it
-     whenever anyone is actually looking, which is the inverse of what a hover is
-     for. The state is carried by the cool light and the sheen; the body steps
-     up one value and no further. */
-  background: linear-gradient(
-    180deg,
-    rgba(250, 251, 253, 0.92) 0%,
-    rgba(240, 243, 248, 0.87) 46%,
-    rgba(228, 233, 240, 0.84) 100%
-  );
-  box-shadow:
-    inset 0 1.5px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 0 rgba(92, 102, 120, 0.07),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
-    0 2px 3px rgba(92, 102, 120, 0.06),
-    0 12px 24px -14px rgba(92, 102, 120, 0.34);
 }
+/* The colour wash no longer arrives on hover.
+ *
+ * It WAS the row's hover, back when the row had a body: cool light pooled at
+ * the bottom edge and dissolving upward. With the body gone there is nothing
+ * for it to pool on — it would be a pale blue film floating over the page's own
+ * #fafafa, which is exactly the thing the visitor asked to stop happening. It
+ * stays declared at 0 rather than deleted so the row's stacking order is
+ * unchanged, and so the tuned values are one line from coming back if a body
+ * ever does. */
 .play-row:hover::after,
 .play-row:focus-visible::after {
-  opacity: 1;
+  opacity: 0;
 }
-/* Selected: a quiet grey well, and deliberately NOT a highlight.
+/* Selected: the light lives in the disc, and the row itself changes nothing.
  *
- * The row has two different jobs to signal and they were competing. Hover is
- * transient — the pointer is here now — so it gets the cool light. Selection is
- * a standing state: one row is always selected, so if it also glowed the column
- * would have a permanent accent in it and the hover would have nothing left to
- * say. So selection goes the other way and reads as a pressed-in well: flat
- * neutral grey, slightly inset, no light and no rim.
+ * This reverses the note that used to sit here, and the reversal is the whole
+ * point of this round. The old rule read "selection is a standing state, so it
+ * must not also glow, or the column would carry a permanent accent" — sound
+ * while hover had a glow of its own to be weighed against. The visitor has
+ * since moved every signal into the disc: the row does not change colour at
+ * rest, on hover, or when selected. That frees the standing state to be the
+ * loud one at last, and it is spent where the eye already goes first — the left
+ * edge of every row.
  *
- * It comes back as the body's own background here. For the metal's lifetime it
- * had to be re-expressed as a plate laid on top, because an opaque canvas hid
- * any fill underneath; the fill is visible again, so the plate is gone rather
- * than kept.
- *
- * The grey is a step darker than the resting body and the ink is darkened with
- * it, so the label still clears contrast. */
+ * No background is set here on purpose. It inherits the resting `none`, which
+ * is what keeps all five capsules flat against the page even with one of them
+ * selected; a fill here would put the column back to five objects with one
+ * raised. */
 .play-row.is-on {
   opacity: 1;
-  border-color: rgba(190, 194, 202, 0.55);
-  background: linear-gradient(
-    180deg,
-    rgba(233, 235, 239, 0.96) 0%,
-    rgba(227, 230, 235, 0.94) 54%,
-    rgba(219, 223, 229, 0.92) 100%
-  );
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
-    inset 0 2px 3px rgba(70, 80, 96, 0.1),
-    0 1px 2px rgba(92, 102, 120, 0.05),
-    0 8px 18px -14px rgba(92, 102, 120, 0.28);
 }
-/* The selected row's ink, darkened to hold up on the grey. Cold near-blacks, to
-   match the body: the warm ones this used to carry sat on a warm plate, and on
-   a cool grey a warm black reads as a smudge rather than as ink. */
-.play-row.is-on .play-name {
-  color: #171a1f;
-}
-.play-row.is-on .play-desc,
-.play-row.is-on .play-level {
-  color: #454b55;
-}
-/* Hover beats selection, so the cursor always confirms what it is over: a row
-   that is both selected and hovered shows the cool light, not the grey well. */
-.play-row.is-on:hover,
-.play-row.is-on:focus-visible {
-  border-color: rgba(255, 255, 255, 0.85);
-  background: linear-gradient(
-    180deg,
-    rgba(248, 250, 253, 0.95) 0%,
-    rgba(238, 242, 247, 0.9) 46%,
-    rgba(228, 233, 240, 0.88) 100%
-  );
-  box-shadow:
-    inset 0 1.5px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 0 rgba(92, 102, 120, 0.06),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
-    0 2px 3px rgba(92, 102, 120, 0.06),
-    0 12px 24px -14px rgba(92, 102, 120, 0.32);
-}
-.play-row.is-on:hover::after,
-.play-row.is-on:focus-visible::after {
+/* The highlight itself: the disc used to fill with light, and it cannot any
+ * more.
+ *
+ * White on #fafafa had no edge of its own, so that drawing was carried by the
+ * two rings around the fill — and the rings are the half of it that survives.
+ * What does not is the fill: the disc is a dark plate now, and a plate is
+ * opaque by definition, so any light painted behind it is light nobody sees.
+ * The standing state is therefore the seat alone (see .play-orb::after), which
+ * is the same silver language the rest of this page uses for "this one", and
+ * which is the only form of it that reads identically on both tiers — the lite
+ * tier has no metal in the disc either. */
+.play-row.is-on .play-orb::after {
   opacity: 1;
 }
-.play-row.is-on:hover .play-name,
-.play-row.is-on:focus-visible .play-name {
+/* The disc's sweep comes up with it. It is paused rather than running from
+   load — see the note on .play-orb::before for why, and for what that change
+   deliberately gives up.
+ *
+ * The selector stays and now points at a `display: none` element: the sweep is
+ * off for every orb, selected or not, so this is the selected row still asking
+ * for something that no longer paints. Kept rather than deleted for the same
+ * reason as the sheen's reduced-motion line — it is one line, and it is the
+ * exact state a disc with no metal in it would want back. */
+.play-row.is-on .play-orb::before {
+  opacity: 1;
+  /* Only the selected row's sweep turns — at most one of these is ever
+     running, and it is the one the visitor is actually looking at. */
+  animation-play-state: running;
+}
+/* The ink stays put, at both ends.
+ *
+ * It used to darken with the grey well and lighten again under the pointer,
+ * which was legible while the plate changed underneath it. With no plate there
+ * is nothing to compensate for, and the honest reading of the new design is
+ * that the label is not a state indicator — the disc is. So the resting ink is
+ * the ink, selected or not, hovered or not. */
+.play-row.is-on .play-name {
   color: #0a0a0a;
 }
-.play-row.is-on:hover .play-desc,
-.play-row.is-on:hover .play-level,
-.play-row.is-on:focus-visible .play-desc,
-.play-row.is-on:focus-visible .play-level {
-  color: #2b313a;
-}
+/* No rule for hover-on-selected. It falls through to the plain .play-row:hover
+   lift above, which is the intended answer: the disc already says which row is
+   loaded, and passing the pointer over it must not be able to dim that. */
 /* There was an @supports block here upgrading .play-row's backdrop-filter to
    url("#glass-refract") blur(14px) saturate(180%), and it stays gone now that
    the body is translucent again. The reason it was removed has expired — the
@@ -2218,22 +2409,24 @@ body[data-tone] .element-serif {
    .liquid-btn keeps its own copy of the upgrade, and .play-desc keeps one too —
    that panel is still real glass and still sits over the ring. */
 
-/* The specular the pointer drags across the pane.
+/* The specular the pointer drags across the pane — switched OFF, not retuned.
  *
- * Two radials at slightly different anchors rather than one. A single radial
- * is a spotlight: it is obviously a circle of white moving over a surface. The
- * second, smaller, cooler one trailing 5%/4% behind turns the pair into a
- * smear of light that changes shape as it travels, which is the difference
- * between a highlight painted on the glass and light moving inside it.
+ * It was the most literal piece of the old metaphor: light travelling inside the
+ * glass, anchored to --gx/--gy, which Carousel.jsx still writes onto the row.
+ * None of that survives a row with no body. `screen` adds to whatever is
+ * underneath, and underneath is now the page itself — so the highlight would not
+ * be light in the capsule, it would be a white smudge floating over #fafafa,
+ * drifting after the cursor across a surface the visitor asked to be blank. A
+ * weaker tint would be no better: the whole point of the effect was that the row
+ * had a material for the light to be *in*.
  *
- * `screen` so it adds to the plate instead of greying it, and it only exists
- * on hover — at rest the row's light is the ring and the disc, and a third
- * light sitting in the middle of every capsule would just be a smudge.
- *
- * The anchors read from --gx/--gy, which Carousel.jsx writes onto the row
- * itself; the 0.5 fallbacks mean the rule is valid before the pointer has ever
- * arrived, so the glass does not need a hover to have a defined highlight. */
+ * `display: none` rather than a delete, for the reason given on ::after: the
+ * geometry, the anchors and the tuned alphas all stay in place for a body that
+ * comes back, and the row's z-order does not shift in the meantime. The
+ * reduced-motion block further down still names this selector — it is now
+ * pointing at something that no longer paints, which is harmless. */
 .play-sheen {
+  display: none;
   content: "";
   position: absolute;
   inset: 0;
@@ -2268,6 +2461,10 @@ body[data-tone] .element-serif {
   opacity: 0;
   transition: opacity 0.28s ease;
 }
+/* Kept, and inert. `display: none` above already makes the element unpaintable,
+   so this reveal cannot fire; it stays as the record of what the hover used to
+   do to the sheen, one line away from meaning something again if the body
+   returns. */
 .play-row:hover .play-sheen,
 .play-row:focus-visible .play-sheen {
   opacity: 1;
@@ -2647,6 +2844,16 @@ body[data-tone] .element-serif {
     min-width: 0;
     padding: 0.58em 0.86em 0.64em 0.42em;
     border-radius: 1.1em;
+    /* No fill here, and it is not an oversight — the panel is the fill.
+     *
+     * On the column the row needs a body of its own because the only thing
+     * behind it is the page: that is the whole of this round's change, see the
+     * note on .play-row. In here there is already a surface under all five —
+     * the sheet — and it is warm 米白, which a cool #eef0f4 capsule would land
+     * on as a colour clash rather than as a step. The disc is the one object
+     * that has to read against that cream, and it does: #d9dde5 is 28 levels
+     * below the panel, which is a wider step than the one it needs on the page. */
+    background: none;
   }
   .play-sheet .play-orb {
     grid-row: 1 / span 2;
@@ -2939,23 +3146,25 @@ body:has(.oracle-stage) .doll {
   /* The sclera. The body plate punches a real transparent hole at each eye, so
      without this the ball sits in front of the *page* and the eye reads as
      pure white — which is what a sheet of #fafafa looks like, not what an
-     eyeball looks like. Sampled the skin around both sockets: (228,207,209) at
-     the right rim, (213,197,194) on the cheek, i.e. a warm neutral. This is
-     that family, lifted a little so it still reads as an eye rather than as
-     the hole it is: warm, not white.
+     eyeball looks like. It was a warm neutral at first — sampled from the skin
+     around both sockets, (228,207,209) at the right rim and (213,197,194) on
+     the cheek — and that family is now out, for the reason in the note below:
+     it tinted the whole stage rather than just the two sockets. Neutral now,
+     a shade under #fafafa so the ball still reads as an eye rather than as the
+     hole it is.
      
-     A solid colour rather than a sixth PNG: it is one flat fill, so shipping
-     another 1293x1080 RGBA plate to express it would be absurd. It sits under
-     the <svg>, so 眼球 -> 身体 -> 眼皮 still composites on top of it exactly as
-     before, and the ball keeps its own blue-grey orb and specular.
+     CSS rather than a sixth PNG: the sockets are two soft discs, so shipping
+     another 1293x1080 RGBA plate to express them would be absurd. They sit
+     under the <svg>, so 眼球 -> 身体 -> 眼皮 still composites on top of them
+     exactly as before, and the ball keeps its own blue-grey orb and specular.
      
-     Flat colour is the base, and the two radial layers over it do the work.
-     A uniform fill left the crescent with a hard geometric edge wherever the
-     plate's alpha hole ended, so it read as paper cut-outs laid in the face.
-     Real sclera darkens toward the corners — the sockets are deeper there, so
-     less light reaches them. Two offsets, one per eye, each fading to the
-     surrounding skin tone at the rim, which is what turns the cut-out edge
-     into an occlusion shadow.
+     The two radial layers do the work, and there is no base under them any
+     more. A uniform fill left the crescent with a hard geometric edge wherever
+     the plate's alpha hole ended, so it read as paper cut-outs laid in the
+     face. Real sclera darkens toward the corners — the sockets are deeper
+     there, so less light reaches them. Two offsets, one per eye, each fading
+     to nothing at the rim, which is what turns the cut-out edge into an
+     occlusion shadow.
      
      The centres are box-relative percentages derived from the plate: the eye
      centres sit at plate (573.5,742) and (847,503.5) of 1293x1080, i.e. 44.4%
@@ -2964,22 +3173,38 @@ body:has(.oracle-stage) .doll {
      box *diagonal*, which would make it drift with aspect ratio; the socket is
      about 10.5% of the plate height, and the box height is exactly 100vh, so
      11vh is the same measurement in a unit that holds its shape. */
+  /* NEUTRAL, and no longer a stage-wide fill.
+   *
+   * The warm #f3e8e0 that used to sit under the two radials was the whole
+   * reason the page read as two colours: this box is 964x805 and pinned to
+   * the left edge, so every pixel of background behind the figure was warm
+   * beige while everything right of it stayed body #fafafa. That boundary is
+   * a gradient across the background, and it is what the visitor asked out —
+   * "背景统一颜色".
+   *
+   * Dropping the last layer is what does it: with no opaque base the box is
+   * transparent everywhere except the two discs, so the page's own #fafafa
+   * is the background again, left to right, and the sockets keep the shallow
+   * neutral they need. #edf0f4 rather than the old warm pair — it is the
+   * same few degrees cooler as the doll's own blue-grey, so the ball still
+   * separates from the litter without the fill announcing a hue.
+   *
+   * The discs stay at 11vh and still fade out well inside the socket, which
+   * matters more now than it did over a matching base: anything the fade
+   * leaves outside the eye would be a faint grey coin sitting on #fafafa. */
   background:
     radial-gradient(
       circle 11vh at 44.4% 68.7%,
-      #f6ece6 0%,
-      #f2e6de 58%,
-      rgba(240, 228, 220, 0.55) 78%,
-      rgba(238, 224, 216, 0) 100%
+      #edf0f4 0%,
+      rgba(238, 241, 245, 0.88) 60%,
+      rgba(240, 243, 247, 0) 100%
     ),
     radial-gradient(
       circle 11vh at 65.5% 46.6%,
-      #f6ece6 0%,
-      #f2e6de 58%,
-      rgba(240, 228, 220, 0.55) 78%,
-      rgba(238, 224, 216, 0) 100%
-    ),
-    #f3e8e0;
+      #edf0f4 0%,
+      rgba(238, 241, 245, 0.88) 60%,
+      rgba(240, 243, 247, 0) 100%
+    );
 }
 
 /* An <svg> root rather than stacked <img> elements. Not for clipping any
@@ -3037,3 +3262,82 @@ body:has(.oracle-stage) .doll {
 @media (max-width: 480px) {
   .doll { display: none; }
 }
+
+/* === Quality tier: `html.perf-lite` =====================================
+ *
+ * Set at runtime by lib/perf-tier.js on a machine that cannot render this page
+ * on a GPU — hardware acceleration switched off, a blocklisted driver, a
+ * remote desktop session, or a CPU that simply cannot hold 45fps. Read that
+ * file for how the tier is decided. This is what it changes.
+ *
+ * The admission rule for anything in here: its cost has to be paid *every
+ * frame, forever*, and the thing being paid for has to be something the
+ * visitor is not looking at. Nothing below changes a colour, a size or a
+ * position, so a lite visitor gets the same design as everyone else — it is
+ * quieter, not different.
+ *
+ * Measured with the ablation rig (.probe/cpu-ablation.mjs) against the shipped
+ * page at 4x CPU throttling, which is roughly a five-year-old laptop.
+ */
+
+/* The ambient sweeps: five rim conics and five disc conics, all rotating
+   forever. With a GPU this is a composited transform and nearly free. Without
+   one, each is a full re-raster of a masked conic gradient, every frame — the
+   largest single avoidable cost on the page, and it buys motion at the edge of
+   vision. The rims keep their silver; they stop travelling. */
+html.perf-lite .play-border::before,
+html.perf-lite .play-orb::before,
+html.perf-lite .halo-spin::before {
+  animation: none !important;
+}
+
+/* The refraction. `feImage` + `feDisplacementMap` run over the backdrop to
+   bend it at the rim, and they cannot be composited — the backdrop has a live
+   WebGL canvas in it, so the filter chain re-runs every frame. Lite keeps the
+   frosted glass, at the plain-blur value the @supports block already falls
+   back to, and gives up the rim kink. */
+html.perf-lite .liquid-btn,
+html.perf-lite .glass-panel,
+html.perf-lite .play-sheet {
+  -webkit-backdrop-filter: blur(14px) saturate(170%) !important;
+  backdrop-filter: blur(14px) saturate(170%) !important;
+}
+/* `.play-pill` is declared inside the phone breakpoint, and that scoping is
+   carried over rather than flattened: at desktop widths the pill does not
+   exist, and a global override would hand it a backdrop-filter the design
+   never gave it there. */
+@media (max-width: 639.98px) {
+  html.perf-lite .play-pill {
+    -webkit-backdrop-filter: blur(14px) saturate(170%) !important;
+    backdrop-filter: blur(14px) saturate(170%) !important;
+  }
+}
+
+/* The wash behind the reading: a full-viewport layer under a 36px blur at
+   scale 1.22, with a second 10px blur multiplied into it. Static, so it is a
+   one-off — but on the machines this tier exists for, that one-off is a
+   visible stall at the exact moment the visitor is trying to read the step.
+   Blur cost scales with radius, so 36px -> 14px is most of it back. */
+html.perf-lite .oracle-art {
+  filter: blur(14px) saturate(1.05) brightness(1.04);
+  transform: scale(1.1);
+}
+html.perf-lite .oracle-art-texture {
+  filter: blur(6px) saturate(1.1) contrast(1.4) brightness(0.92);
+}
+
+/* The liquid-metal orbs are not switched off here, because there is nothing
+   here to switch off: on a lite machine the adapter never mounts their iframes
+   and the disc underneath is what you see — same size, same tone, same ring,
+   and it already carries the reference's own plate shadow (see .play-orb). The
+   decision is in components/threeui/LiquidMetalCircle.jsx, where five WebGL
+   contexts and five shader programs can be declined before they exist. */
+
+/* `will-change` on the four moving doll plates is deliberately NOT touched
+   here, and it is worth writing down why, because removing it looks like the
+   obvious saving. Without promotion, moving one of those layers invalidates
+   the whole masked SVG and repaints a viewport-sized surface every frame —
+   the promotion is what makes the movement cost a transform instead. Dropping
+   it would trade four standing textures for a full-screen repaint per frame,
+   which is the wrong direction on exactly the hardware this tier is for. */
+

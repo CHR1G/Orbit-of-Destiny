@@ -13,6 +13,7 @@ import {
 import { buildAtlas } from "./ring/atlas";
 import CardDetail from "./CardDetail";
 import DollFace from "./DollFace";
+import LiquidMetalCircle from "./threeui/LiquidMetalCircle";
 import OracleFlow from "./OracleFlow";
 import TarotVortex, { vortexPointer } from "./TarotVortex";
 import { createMeta } from "./ring/meta";
@@ -20,6 +21,7 @@ import { createSplitText } from "./ring/splitText";
 import { todayStr, preloadTarotImages } from "./ring/tarot";
 import { createTag, TAG_W, TAG_H } from "./ring/tag";
 import { defaultParams } from "./ring/params";
+import { currentTier, onTierChange, reportRenderer, watchFrameTime } from "../lib/perf-tier";
 import { IMAGE_FILES, PROJECTS } from "./ring/projects";
 import { PLAYS, PLAY_BY_ID } from "./ring/spreads";
 import { Sigil } from "./ring/sigil";
@@ -191,7 +193,21 @@ export default function Carousel() {
       console.error("[ring] could not create a WebGL context:", err);
       return;
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    /* The backing store, and the one number on this page that multiplies
+     * everything else. `min(dpr, 2)` is right on a GPU: a 2x display gets four
+     * times the pixels and the rasteriser does not care. Behind a software
+     * rasteriser those four times are the whole cost, and the ring is a
+     * full-viewport fragment shader redrawn every frame — so on the lite tier
+     * it drops to 1x and stays there. Read before the ring reports anything,
+     * because the report is what might downgrade the tier. */
+    const pixelRatio = () =>
+      currentTier() === "lite" ? 1 : Math.min(window.devicePixelRatio, 2);
+    renderer.setPixelRatio(pixelRatio());
+    // The renderer's own name is the most reliable evidence of a machine
+    // without hardware acceleration, and this is the only WebGL context on the
+    // page — so the tier reads it here rather than probing one of its own.
+    reportRenderer(renderer.getContext());
+    const offTier = onTierChange(() => renderer.setPixelRatio(pixelRatio()));
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -1636,10 +1652,16 @@ export default function Carousel() {
       renderer.render(scene, camera);
     });
 
+    /* The backstop for machines that match none of the static signals: sample
+     * the frame times once the entry animation is out of the way, and drop the
+     * tier if the median cannot hold 45fps. Downgrade only — see lib/perf-tier.js. */
+    watchFrameTime();
+
     return () => {
       disposed = true;
       clearTimeout(holdTimer);
       clearTimeout(fontFallback);
+      offTier();
       renderer.setAnimationLoop(null);
 
       window.removeEventListener("resize", onResize);
@@ -1764,16 +1786,33 @@ export default function Carousel() {
               underneath is grey again. Anchors read --gx/--gy, written onto the
               row by glideRow above. */}
           <span className="play-sheen" aria-hidden="true" />
-          {/* The sigil used to ride inside .play-name, so it sat on the label's
-              baseline and its size was whatever the text line gave it. It now
-              has its own disc: the mark is centred by the disc's own flex box,
-              so the two cannot drift apart, and it gets a ground of its own
-              rather than the capsule's flat grey. That ground is silver now —
-              the strokes are a dark under-line carrying a silver gradient, and
-              the pair reads as a bevel on a silver disc where on plain pale
-              glass it would just go soft. */}
+          {/* The disc is empty, and that is the state it is designed around.
+              It carries no mark at rest and fills with light when the row is
+              the selected one.
+
+              It used to hold a sigil. That mark was doing the job the
+              highlight now does — giving the row a focal point on its left
+              edge — so keeping it would leave the selected state with nothing
+              of its own to add, and the highlight would read as one more thing
+              piled onto a disc that was already busy. The marks were never
+              wayfinding either: the label sits right beside them, so nothing
+              is lost by their absence. The pill below the fold keeps its own
+              copy, where it names the current play on its own with no label
+              column behind it. See .play-orb in globals.css. */}
+          {/* View 按钮的半透明折射感、圆形高亮，以及“选中才有反应”的那颗 disc，
+              现在由 ThreeUI 的液态金属按钮接管：真 WebGL，真流光，银色只在指针
+              压上来时出现。它填满这个槽位，并向外多出 3.6 倍用于泛光——所以
+              .play-orb 必须 overflow: visible，而那块多出来的透明区域不吃指针
+              事件，见 globals.css 里的 .play-orb 区块。
+
+              这里传的是行的名字，只用于无障碍标签；圆钮本身在 aria-hidden 的
+              子树里，且不在 Tab 序里（整行才是控件）。金属在 lite 档不会挂载，
+              留下的是同一颗浅灰 disc（见 .play-orb）。 */}
           <span className="play-orb" aria-hidden="true">
-            <Sigil name={p.sigil} className="play-sigil" />
+            <LiquidMetalCircle
+              label={p.name}
+              onActivate={() => openPlayRef.current(p.id)}
+            />
           </span>
           <span className="play-copy">
             <span className="play-name">{p.name}</span>
