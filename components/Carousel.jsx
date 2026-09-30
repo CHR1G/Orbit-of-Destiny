@@ -21,7 +21,6 @@ import { createSplitText } from "./ring/splitText";
 import { todayStr, preloadTarotImages } from "./ring/tarot";
 import { createTag, TAG_W, TAG_H } from "./ring/tag";
 import { defaultParams } from "./ring/params";
-import { currentTier, onTierChange, reportRenderer, watchFrameTime } from "../lib/perf-tier";
 import { IMAGE_FILES, PROJECTS } from "./ring/projects";
 import { PLAYS, PLAY_BY_ID } from "./ring/spreads";
 import { Sigil } from "./ring/sigil";
@@ -194,20 +193,12 @@ export default function Carousel() {
       return;
     }
     /* The backing store, and the one number on this page that multiplies
-     * everything else. `min(dpr, 2)` is right on a GPU: a 2x display gets four
-     * times the pixels and the rasteriser does not care. Behind a software
-     * rasteriser those four times are the whole cost, and the ring is a
-     * full-viewport fragment shader redrawn every frame — so on the lite tier
-     * it drops to 1x and stays there. Read before the ring reports anything,
-     * because the report is what might downgrade the tier. */
-    const pixelRatio = () =>
-      currentTier() === "lite" ? 1 : Math.min(window.devicePixelRatio, 2);
-    renderer.setPixelRatio(pixelRatio());
-    // The renderer's own name is the most reliable evidence of a machine
-    // without hardware acceleration, and this is the only WebGL context on the
-    // page — so the tier reads it here rather than probing one of its own.
-    reportRenderer(renderer.getContext());
-    const offTier = onTierChange(() => renderer.setPixelRatio(pixelRatio()));
+     * everything else: `min(dpr, 2)`. The cap is not a quality setting, it is
+     * the point past which more pixels stop being visible — a 3x phone would
+     * otherwise pay nine times the fill for a difference nobody can see. Every
+     * machine gets the same number now; the tier that used to drop this to 1x
+     * is gone. */
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -1652,16 +1643,10 @@ export default function Carousel() {
       renderer.render(scene, camera);
     });
 
-    /* The backstop for machines that match none of the static signals: sample
-     * the frame times once the entry animation is out of the way, and drop the
-     * tier if the median cannot hold 45fps. Downgrade only — see lib/perf-tier.js. */
-    watchFrameTime();
-
     return () => {
       disposed = true;
       clearTimeout(holdTimer);
       clearTimeout(fontFallback);
-      offTier();
       renderer.setAnimationLoop(null);
 
       window.removeEventListener("resize", onResize);
@@ -1806,8 +1791,7 @@ export default function Carousel() {
               事件，见 globals.css 里的 .play-orb 区块。
 
               这里传的是行的名字，只用于无障碍标签；圆钮本身在 aria-hidden 的
-              子树里，且不在 Tab 序里（整行才是控件）。金属在 lite 档不会挂载，
-              留下的是同一颗浅灰 disc（见 .play-orb）。 */}
+              子树里，且不在 Tab 序里（整行才是控件）。 */}
           <span className="play-orb" aria-hidden="true">
             <LiquidMetalCircle
               label={p.name}

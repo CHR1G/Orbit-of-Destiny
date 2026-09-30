@@ -43,7 +43,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { currentTier, onTierChange } from "../../lib/perf-tier";
 import {
   HOST_RATIO,
   buildCircleSource,
@@ -104,23 +103,13 @@ export default function LiquidMetalCircle({
     );
   }, [label, plates]);
 
-  /* Five of these are five WebGL contexts of five shader programs each. On the
-   * tier that exists for machines with no GPU that is the wrong trade, and the
-   * disc underneath is already the same size, the same tone and the same ring -
-   * so a lite visitor keeps the design and loses only the metal. Decided here
-   * rather than during render for two reasons: the tier is a property of the
-   * machine and cannot be known while prerendering, and the exported HTML
-   * should not carry 190KB of iframe markup five times over. */
+  /* The metal is mounted after hydration rather than during render, and that is
+   * the whole reason this effect exists: the exported HTML has to stay a plain
+   * disc, or a prerendered page would carry this 190KB iframe document five
+   * times over before a single byte of it could be seen. */
   useEffect(() => {
-    // The tier is a property of the machine and cannot be known while
-    // prerendering, so this cannot be decided during render: the exported HTML
-    // renders the disc, and the metal arrives only once we know it is wanted.
-    if (currentTier() === "lite") return undefined;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
     setLiquid(true);
-    return onTierChange((next) => {
-      if (next === "lite") setLiquid(false);
-    });
   }, []);
 
   useEffect(() => {
