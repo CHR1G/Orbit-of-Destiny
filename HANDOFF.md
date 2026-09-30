@@ -614,18 +614,25 @@ node "$PROBE/verify-push5.mjs" "$H" "$T" <base-sha> [file=blobsha ...]
 ### Git
 
 ```
-acfe125  Rewrite the handoff for the machine after this one    ← HEAD（本文档这次改写）
-2ff3c7e  Drop the lite tier entirely                          ← origin/main
+2ff3c7e  Drop the lite tier entirely            ← origin/main（2026-09-30 推平）
 a40e553  Rebuild the play orbs on ThreeUI's liquid metal and re-tone the column
 71b10ab  Teach the app to live under a repo sub-path
 7019cc5  Give the phone play sheet five rows of one width
 ```
 
+（本文档自己那批改写提交挂在 HEAD 上、未推，见下面那段。）
+
 - 分支 `main`，**工作区干净**。
-- `origin/main` = **`2ff3c7e`**；本地领先 **1 个提交**（`acfe125`，就是本文档这次的改写）。
+- `origin/main` = **`2ff3c7e`**；本地领先**若干提交，全部是"本文档改写"这一批**
+  —— 本文档自己每改一次就多一个提交，所以**别数，现查**：
+
+  ```bash
+  git log --oneline $(git ls-remote origin main | cut -f1)..HEAD
+  ```
+
 - `origin/gh-pages` = `38ec05b4`（**旧版，手动部署，见 7.4**）。
 
-> ⚠️ **`acfe125` 没推上去，原因就是 6.4 节说的形态 B** —— 写这份文档时宿主只接管了
+> ⚠️ **这批提交没推上去，原因就是 6.4 节说的形态 B** —— 写这份文档时宿主只接管了
 > HTTP 层，`net.connect` 全部超时，隧道原理上就不通（TLS 握手收不到回应）。
 > 下次在能推的时候补一条：
 >
