@@ -10,8 +10,11 @@
 >   页面图标、移除 Lite 降级档）；这些之前只存在于开发机的记忆里。
 > · **更正四条已失效的旧结论**：域名分工（第 7.4 节）、git 推送必须靠 PAT（第 6.4 节）、
 >   远端落后 7 个提交（第 7 节）、Lite 档的存在（第 6 节 / 第 7 节）。
-> · 新增第 0.5 节：哪些资产**不跟同步盘走**，换机必须手动搬。
+> · 新增第 0.5 节：哪些资产**不跟同步盘走**，换机必须手动搬（探针脚本已备到同步盘）。
 > · 新增第 6.7 / 6.9 / 6.15 / 6.16 四条坑。
+> · 6.4 节据实改写：给 git 借隧道这条路**依赖 `net.connect`，而宿主 hook 的模式会变**
+>   —— 写这份文档的当天上午这条路通、下午就不通了（两种形态的判别方法在 6.4）。
+>   因此本轮留下的提交 `acfe125` 未推，**但不影响换机**。
 >
 > ⚠️ 本文里带日期的事实**都是实测的**。但**任何"当前状态"写下的瞬间就开始旧**——
 > 要准确数字一律现测，别照抄本文。
@@ -386,36 +389,35 @@ API / 命令行改不了，得在客户端里点。没排除之前，每次两�
 ### 6.4 `git push` 失败 / 卡住（2026-09-30 整段重写）
 
 > **旧版本这一节写的是"必须准备一个 classic PAT 走 7897 代理"，已作废。**
-> 凭据现在已托管在凭据管理器里，`git push` 本身是通的。真正的问题换成了**网络路径**。
+> 凭据现在已托管在凭据管理器里（`credential.helper = helper-selector`）。真正的问题换成了**网络路径**。
 
-**先诊断，三步：**
+**第一步永远是这一条 —— 它决定你走哪条路：**
 
 ```bash
-# ① 远端读得到吗
-git ls-remote origin main
-
-# ② 本地有没有配死一个已经关掉的代理（本仓库的 local config 里有，换机后要重新配）
-git config --list --show-origin | grep -i proxy
-
-# ③ 沙箱内的 node 出得去吗
-node -e "fetch('https://api.github.com/repos/CHR1G/Orbit-of-Destiny').then(r=>console.log(r.status))"
+# node 的 raw TCP 能不能出网？
+node -e "const n=require('net');const s=n.connect({host:'github.com',port:443},()=>{console.log('TCP OK');s.destroy()});s.on('error',e=>console.log('FAIL',e.code));s.setTimeout(7000,()=>{console.log('TIMEOUT');s.destroy()})"
 ```
 
-**这台机器上实测到的形态**（很可能在新机器上重现）：
+⚠️ **宿主的 hook 模式会变，同一台机器不同时候结果不同。** 2026-09-30 一天之内就见过两种：
 
-| 谁 | 直连 github.com | 连"代理"端口 |
-|---|---|---|
-| `node` | ✅ 320 ms，TLS 握手通 | ✅ `fetch` 200 |
-| `git` | ❌ 21 s 超时 | ❌ 21 s 超时 |
-| `git`（出沙箱后） | ❌ 21 s 超时 | ❌ raw TCP 超时（那个端口不是真实服务） |
+| 形态 | `net.connect` 外网 | `fetch` 外网 | git 能不能推 |
+|---|---|---|---|
+| **A（09-30 上午）** | ✅ 320 ms | ✅ 200 | ✅ 有隧道就能 |
+| **B（09-30 下午）** | ❌ 全部超时 | ✅ 200 | ❌ **推不了** |
 
-两个反直觉的点：
+**形态 A** → 用下面的隧道。**形态 B** → 别浪费时间，隧道原理上就不通：
+`CONNECT` 能建立（291 ms），可 TLS ClientHello 发出去**收不到任何回应**，git 报
+`schannel: failed to receive handshake`。这不是配置错，是宿主只接管了 HTTP 层、
+裸 TCP 被掐 —— 这一轮最终就卡在这里，**改天或换网络再推**。
+
+另外两个反直觉的点：
 
 - **环境变量里那个 `HTTP_PROXY` 根本不是真实服务** —— 出沙箱用 raw TCP 打它超时，
   可 node 的 `fetch` 却通。那只是宿主 hook 了 node 网络层的标记。
 - **沙箱对本地端口的限制是按「进程 × 端口」生效的** —— 同一个端口 node 通、git 不通。
 
-**突破口：git 能连上 node 自己监听的端口。** 于是给它借一条 HTTP CONNECT 字节隧道：
+**形态 A 的隧道：git 能连上 node 自己监听的端口**（这条在两种形态下都成立），
+于是给它借一条 HTTP CONNECT 字节隧道：
 
 ```bash
 # 终端 1：起隧道（监听 3112，用 node 的出网能力转发）
@@ -436,6 +438,14 @@ TLS 端到端，隧道不终止也不解密。
 >
 > ⚠️ **本机 `.git/config` 里的 `http.proxy` / `https.proxy` = `127.0.0.1:7897` 是历史遗留**，
 > 那个端口（用户的 clash）现在没开。换机后要么删掉这两条，要么每次 `-c` 覆盖。
+>
+> ⚠️ **偶发 `schannel: failed to receive handshake` 时先看第 1 步的结果**：
+> 如果 `net.connect` 是通的，那才是"重试一两次就过"；如果它不通，重试一百次也没用。
+> **别把形态 B 当成偶发失败。**
+
+**兜底（两种形态下都可用）**：`fetch` 始终能出网，所以需要紧急推送时可以绕开 git、
+直接用 GitHub 的 REST API（`PUT /repos/{owner}/{repo}/contents/{path}`，带上
+`sha` + base64 内容）。代价是要用到凭据 —— **这么做之前先问用户**，别自己去翻凭据管理器。
 
 **只读比对也要注意**：`git fetch origin main` 之后 `origin/main` 跟踪引用**不一定留得下来**。
 可靠做法是拿远端 sha 直接比：
@@ -604,19 +614,29 @@ node "$PROBE/verify-push5.mjs" "$H" "$T" <base-sha> [file=blobsha ...]
 ### Git
 
 ```
-2ff3c7e  Drop the lite tier entirely                          ← HEAD，本地与远端一致
+acfe125  Rewrite the handoff for the machine after this one    ← HEAD（本文档这次改写）
+2ff3c7e  Drop the lite tier entirely                          ← origin/main
 a40e553  Rebuild the play orbs on ThreeUI's liquid metal and re-tone the column
 71b10ab  Teach the app to live under a repo sub-path
 7019cc5  Give the phone play sheet five rows of one width
-036bf94  Let the reveal card shrink to pay for a long reading
 ```
 
-- 分支 `main`，**工作区干净**，无待推提交。
-- `origin/main` = **`2ff3c7e`**（2026-09-30 经隧道推送，三通道复核全绿）。
+- 分支 `main`，**工作区干净**。
+- `origin/main` = **`2ff3c7e`**；本地领先 **1 个提交**（`acfe125`，就是本文档这次的改写）。
 - `origin/gh-pages` = `38ec05b4`（**旧版，手动部署，见 7.4**）。
 
+> ⚠️ **`acfe125` 没推上去，原因就是 6.4 节说的形态 B** —— 写这份文档时宿主只接管了
+> HTTP 层，`net.connect` 全部超时，隧道原理上就不通（TLS 握手收不到回应）。
+> 下次在能推的时候补一条：
+>
+> ```bash
+> git -c http.proxy=http://127.0.0.1:3112 -c https.proxy=http://127.0.0.1:3112 push origin main
+> ```
+>
+> **这不影响换机**：文件在同步盘上，路线 A 直接就能拿到。
+
 > 上一版本文档说"远端停在 `22ae952`、本地领先 7 个提交、只差一个 PAT" ——
-> **已于 2026-09-30 全部推平**，凭据也已托管。
+> **已全部推平**，凭据也已托管。
 
 ### 三条线上线各自是什么版本
 
@@ -885,5 +905,8 @@ node scripts/deploy-pages.mjs
 - [ ] `NODE_OPTIONS=" " npm run build` 通过（不要写 `| tail`，见 6.7）
 - [ ] `npm run lint` 干净
 - [ ] 改过 `liquid-metal-circle.source.js` → `node "$PROBE/check-adapted.cjs"` 14 项全绿
-- [ ] `git status` 干净；`git log --oneline $(git ls-remote origin main | cut -f1)..HEAD` 为空
+- [ ] `git status` 干净
+- [ ] 与远端的关系：`git log --oneline $(git ls-remote origin main | cut -f1)..HEAD`
+      —— 为空即同步；**不为空也不一定是问题**（2026-09-30 就留了 1 个未推的提交，
+      原因是 6.4 节的形态 B），但要清楚每个未推提交是什么
 - [ ] 发布过的话：`node "$PROBE/site-versions.mjs"` 里目标站点显示当前版本（6.9）
