@@ -110,7 +110,7 @@ node "$PROBE/cdp-orb-tone.mjs" "https://orbit-of-destiny.app.workbuddy.link"   #
 | `cdp-orb-pierce.mjs` | 五颗圆钮逐个派发真实指针，判定指针有没有被邻居 iframe 吞掉 |
 | `cdp-orb-realhover.mjs` | 真实指针 vs `__hover(true)` 的对照 |
 | `cdp-orb-shots.mjs` / `cdp-shots.mjs` | 按元素裁切截图 |
-| `check-adapted.cjs` | 适配层断言（14 项），**不需要打包器**，改完 `liquid-metal-circle.source.js` 先跑它 |
+| `check-adapted.cjs` | 适配层断言（14 项，**任一 FAIL 退出码 1**），**不需要打包器**，改完 `liquid-metal-circle.source.js` 先跑它 |
 | `serve-out.mjs` | 把 `out/` 起成静态站点（验生产构建用） |
 | `verify-push5.mjs` | 推送三通道复核（本地值由 shell 传入，避免 spawn 问题） |
 | `git-tunnel.mjs` | 给 git 借一条出网隧道（见 6.4） |
@@ -275,7 +275,9 @@ node node_modules/eslint/bin/eslint.js components app lib
 - 六条覆盖是有意为之，**不是没抄全**：清底与宿主样式、直径下限 36→24、给 `FRAG_RIM`
   补 `uHover` 让银色流光**只在 hover 出现**、空闲帧判据、删远程字体、指针回放。
   每条的理由都写在 `liquid-metal-circle.source.js` 的注释里，改之前先读。
-- **改完先跑 `node "$PROBE/check-adapted.cjs"`**（14 项断言，不需要打包器），再跑构建。
+- **改完先跑 `node "$PROBE/check-adapted.cjs"`**（14 项断言，不需要打包器；末行打印 `14/14 assertions passed`，
+  **任一 FAIL 退出码 1** —— 2026-09-30 补的：此前它打印 FAIL 却仍以 0 退出，
+  挂进管道就是"绿的"，属静默通过），再跑构建。
 
 ### 5.2 素材
 
