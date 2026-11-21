@@ -86,8 +86,11 @@ PROBE=<盘符>:/BaiduSyncdisk/INTERNET-1.0/_probe-tools    # 复制到工作区�
 
 node "$PROBE/site-versions.mjs"                    # 线上三条线各是什么版本
 node "$PROBE/cdp-orb-tone.mjs"                     # 打本机 dev（默认 http://127.0.0.1:3000/）
-node "$PROBE/cdp-orb-tone.mjs" "https://orbit-of-destiny.app.workbuddy.link"   # 或打线上
+node "$PROBE/cdp-orb-tone.mjs" "https://orbit-of-destiny.app.workbuddy.host/?sharecode=<code>"   # 或打线上
 ```
+
+> ⚠️ **打线上必须带 `?sharecode=`**（见 7.4）。探针抓裸域名会拿到 403 页面，
+> 于是所有断言"通过"但通过得很荒唐 —— 校验的是那张错误页。
 
 **两个环境变量**（需要时才设，都有默认值）：
 
@@ -669,26 +672,34 @@ a40e553  Rebuild the play orbs on ThreeUI's liquid metal and re-tone the column
 
 ### 三条线上线各自是什么版本
 
-用 `$PROBE/site-versions.mjs` 实测（抓 CSS 查内容标记，**不依赖任何 sha，所以不会过期**）：
-
-| 站点 | 版本 | `index.html` sha1 | 有 favicon |
+| 站点 | 版本 | `index.html` 实测 sha1 | 怎么打开 |
 |---|---|---|---|
-| `orbit-of-destiny.app.workbuddy.link` | **最新（09-30）** | `f48a867b5ded` | ✅ |
-| `orbit-of-destiny.app.workbuddy.host` | **最新（同一个后端）** | `f48a867b5ded` | ✅ |
-| `orbit-of-destiny-65628.app.workbuddy.link` | 旧（pre-09-23） | `243bcecc443e` | ❌ |
-| `chr1g.github.io/Orbit-of-Destiny/` | 旧（pre-09-23） | `980c3a4d787d` | ❌ |
+| `orbit-of-destiny.app.workbuddy.link` | **最新** | `cec4c1908df3` | **必须带 `?sharecode=`** |
+| `orbit-of-destiny.app.workbuddy.host` | **最新（同一个后端）** | `cec4c1908df3` | 同上 |
+| `orbit-of-destiny-65628.app.workbuddy.link` | 旧（pre-09-23） | — | 已无权访问 |
+| `chr1g.github.io/Orbit-of-Destiny/` | 旧（pre-09-23） | `980c3a4d787d` | 公开 |
+
+> ⚠️ **2026-11-21 重新上线后，唯一的可用链接是**
+> `https://orbit-of-destiny.app.workbuddy.host/?sharecode=QWSHIY5VVT`
+>
+> - **裸域名（不带 `?sharecode=`）一律 403「链接不完整」** —— 之前分发出去的旧链接全部作废。
+> - 门禁走 **cookie**：带 sharecode 首次访问会种 `__wb_rsc`（`Max-Age=2592000`，30 天），
+>   之后同一浏览器才放行子资源（CSS / JS / 图集）。**不带 cookie 直接请求任何子路径也是 403。**
+> - `site-versions.mjs` 抓的是裸域名 ⇒ 现在会三站点**全红**。那是工具失效，不是站点坏了；
+>   要用它得先改成带 sharecode + 带 cookie 访问。
 
 判定依据是 CSS 里的内容标记：最新的那两条含 `liquid-metal-button__hit` + `#d9dde5` +
-`#eef0f4`；`-65628` 与 Pages **一个都没有**，它们的 `.play-orb` 还是三层 `radial-gradient`
-叠出来的白玻璃球（那是 09-23 之前的写法）。
+`#eef0f4`（线上 58310 B，比本地 `out/` 的 58268 B 多 42 B，平台注入）；`-65628` 与 Pages
+**一个都没有**，它们的 `.play-orb` 还是三层 `radial-gradient` 叠出来的白玻璃球（那是 09-23 之前的写法）。
 
-### 09-15 → 09-30 做了什么
+### 09-15 → 11-21 做了什么
 
 | 日期 | 动作 |
 |---|---|
 | 09-15 | `out/` 重建（含 sub-path 提交）并发布；确认线上 = 本地（15/15 资源字节一致） |
 | 09-23 | 页面图标 `app/icon.svg`；性能分级（当时引入 Lite 档）；**右侧圆钮换成 ThreeUI 液态金属**（circle 变体，精确源码），途中修掉 6.15 那两个真实 bug |
 | 09-30 | **三层色调阶梯**（页面 `#fafafa` → 胶囊 `#eef0f4` → 圆盘 `#d9dde5`，实测亮度 249.2 / 239.9 / 220.7）；圆盘 hover 时下沉回深色再涌上金属；**彻底移除 Lite 档** |
+| 11-21 | 线上应用被平台下线（裸域 403「链接不完整」），**直接重发现成的 `out/`、没有重建**（`git log --since=09-30 -- app components lib` 为空，代码零改动）；新链接带 `sharecode=QWSHIY5VVT` |
 
 ### 关于已移除的 Lite 档（重要，别再翻出来）
 
@@ -717,16 +728,17 @@ node node_modules/next/dist/bin/next dev -p 3000
 
 ## 7.4 线上与发布
 
-### 域名（2026-09-30 更正）
+### 域名（2026-11-21 实测）
 
-| 形式 | 2026-09-30 实测 |
+| 形式 | 实测结果 |
 |---|---|
-| `*.app.workbuddy.link` | 公网分享链接，**200**，服务最新构建 |
-| `*.app.workbuddy.host` | **同样 200、同一后端、内容逐字节相同**（sha1 都是 `f48a867b5ded`） |
+| `…?sharecode=<code>` | **200**，`index.html` 与本地 `out/` **逐字节相同**（sha1 `cec4c1908df3`） |
+| `*.app.workbuddy.link` / `*.app.workbuddy.host` 裸域名 | **403「链接不完整」** |
 
-> **旧版本说 `.host` 只能本机打开（DNS 指向 127.0.0.1）—— 这条已经不成立了。**
-> 本轮从开发机实测 `.host` 返回的正是线上内容。两个域名都可以用；
-> **但对外分享仍建议用工具回执里给的那个。** 每次发布都要重新确认，别照抄。
+> **两个域名是同一后端**（`.host` 早年的"只能本机打开"已经彻底不成立），
+> **但都必须带 `?sharecode=`** —— 只发域名等于发了个 403 页面。
+> 访问门禁靠 cookie：带 sharecode 首次访问种 `__wb_rsc`（30 天），此后同浏览器子资源才放行。
+> **每次发布都要用回执里的完整链接，别照抄本文档里的 code**（下线重发会给新的）。
 
 ### 发布方式
 
@@ -771,17 +783,20 @@ node -e "const h=require('fs').readFileSync('out/index.html','utf8');console.log
 **回执不可信（6.8），首页引用的 CSS 名也不可信（6.9）。按这个顺序取证：**
 
 ```bash
+# ⚠️ 线上地址一律用带 ?sharecode= 的完整链接（见 7.4）。
+#    裸域名会返回 403 错误页，于是"逐资源字节一致"会在那张错误页上通过 —— 全绿，但毫无意义。
+
 # 1) 逐资源字节比 + 内容 marker（含"本轮被删掉的旧值"这类 :no marker）
 node "$HOME/.workbuddy/skills/deploy-nextjs-static-cloudstudio/scripts/verify-deploy.mjs" \
   "F:/BaiduSyncdisk/INTERNET-1.0/INFINITE-Space/out" \
-  "https://orbit-of-destiny.app.workbuddy.link" \
+  "https://orbit-of-destiny.app.workbuddy.host/?sharecode=<code>" \
   "perf-lite:no" "#d9dde5:yes" "liquid-metal-button__hit:yes" "/Orbit-of-Destiny:no"
 
 # 2) 三站点版本定位（本文件的 7.4 表格就是它跑出来的）
 node "$PROBE/site-versions.mjs"
 
 # 3) 行为级：把探针指向线上地址，数值与 localhost 逐值比对
-node "$PROBE/cdp-orb-tone.mjs" "https://orbit-of-destiny.app.workbuddy.link"
+node "$PROBE/cdp-orb-tone.mjs" "https://orbit-of-destiny.app.workbuddy.host/?sharecode=<code>"
 ```
 
 第 3 步是最强的一条 —— 它对线上真机取像素。本轮实测线上与本地**逐值相同**
